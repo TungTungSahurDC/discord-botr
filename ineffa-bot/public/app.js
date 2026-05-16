@@ -176,6 +176,7 @@ document.addEventListener("mouseover", (e) => {
 document.addEventListener("mousemove", (e) => moveCursor(e), { passive: true });
 
 function applySettings() {
+  if (!Object.prototype.hasOwnProperty.call(cursorLabels, state.settings.cursor)) state.settings.cursor = "wand";
   const scheme = themeSchemes.find(t => t.id === state.settings.themeScheme) || themeSchemes[0];
   Object.entries(scheme.vars).forEach(([key, value]) => document.documentElement.style.setProperty(`--${key}`, value));
   if (state.settings.accent) document.documentElement.style.setProperty("--accent", state.settings.accent);
@@ -218,8 +219,9 @@ function applySettings() {
 function moveCursor(e) {
   const cursor = el("customCursor");
   if (!cursor || state.settings.cursor === "none") return;
-  cursor.style.setProperty("--cursor-x", `${e.clientX}px`);
-  cursor.style.setProperty("--cursor-y", `${e.clientY}px`);
+  // Use physical left/top instead of transform variables so the white dot is the exact click point.
+  cursor.style.left = `${e.clientX}px`;
+  cursor.style.top = `${e.clientY}px`;
 }
 
 function currentTrack() {
@@ -848,7 +850,9 @@ async function requestGif(query) {
     const item = data.results?.[0];
     if (!r.ok || !item?.url) return null;
     return { url: item.url, label: `GIF: ${item.title || data.query || query}`, content: `[GIF] ${item.title || query}` };
-  } catch (_) { return null; }
+  } catch (_) {
+    return pickContextGif(query);
+  }
 }
 async function sendSearchedGif(c, query) {
   const typing = addBubble({ role: "assistant", type: "text", content: "" }, true);
@@ -860,8 +864,31 @@ async function sendSearchedGif(c, query) {
   save(); renderMessages(); renderChatList(); renderRecent(); playTone("magic");
 }
 
+function openBotSettingsPanel() {
+  showView("settings");
+  requestAnimationFrame(() => {
+    const card = document.querySelector(".bot-settings-card");
+    if (!card) return;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.remove("flash-focus");
+    void card.offsetWidth;
+    card.classList.add("flash-focus");
+    toast("Bot settings are here.");
+  });
+}
+
+function ensureSpotifyEmbed() {
+  const frame = document.querySelector(".spotify-embed");
+  if (!frame) return;
+  const src = "https://open.spotify.com/embed/playlist/4A6ZD9GoWRdB6avUex5dxr?utm_source=generator";
+  if (!frame.src.includes("4A6ZD9GoWRdB6avUex5dxr")) frame.src = src;
+}
+
 function initExtraInteractions() {
   initKeyboardShortcuts();
+  ensureSpotifyEmbed();
+  el("openBotSettingsBtn")?.addEventListener("click", openBotSettingsPanel);
+  el("homeBotSettingsBtn")?.addEventListener("click", openBotSettingsPanel);
   document.querySelectorAll(".scenario-card").forEach(card => card.addEventListener("click", () => {
     showView("chat");
     el("messageInput").value = card.dataset.scenario || "Start a scenario with ineffa.";

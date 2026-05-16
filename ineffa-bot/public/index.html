@@ -28,7 +28,7 @@
     <div class="login-particles" id="loginParticles" aria-hidden="true"></div>
     <div class="auth-card pop-in">
       <img class="app-icon" src="assets/miliastra-icon.gif" alt="Miliastra icon" />
-      <p class="eyebrow">Miliastra presents</p>
+      <p class="eyebrow">Erica presents</p>
       <h1>Miliastra &amp; The Land Down Undah</h1>
       <p class="muted">A cozy interactive chat world for ineffa. Your account, profile, themes, volume, and chat settings save locally in this browser.</p>
       <div class="auth-tabs">
@@ -127,6 +127,7 @@
               <button class="cap-card" data-quick="Remember my name and respond to me personally."><b>💾 Session memory</b><span>Keeps context with session IDs.</span></button>
               <button class="cap-card" data-quick="Help me write a cute message in a polished style."><b>✍️ Writing style</b><span>Markdown, tone, quote, and rewrite help.</span></button>
               <button class="cap-card" data-jump="settings"><b>🌈 Custom UI</b><span>Themes, backgrounds, sounds, cursor, and music.</span></button>
+              <button class="cap-card" id="homeBotSettingsBtn" data-jump="settings"><b>⚙️ Bot Settings</b><span>Change ineffa nickname, style, creativity, and reply length.</span></button>
             </div>
           </section>
           <section class="discord-panel">
@@ -145,8 +146,10 @@
             </div>
             <div class="playlist-list" id="playlistList" aria-label="Local piano playlist"></div>
             <button class="secondary-btn wide" id="spotifyModeBtn" type="button">Use Spotify / pause local music</button>
-            <iframe class="spotify-embed" style="border-radius:18px" src="https://open.spotify.com/embed/playlist/4A6ZD9GoWRdB6avUex5dxr?utm_source=generator&theme=0" width="100%" height="380" frameborder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" title="Spotify playlist"></iframe>
-            <a class="spotify-fallback" href="https://open.spotify.com/playlist/4A6ZD9GoWRdB6avUex5dxr?si=f893ac9232c54441" target="_blank" rel="noreferrer">Open Spotify playlist</a>
+            <div class="spotify-frame-wrap">
+              <iframe class="spotify-embed" src="https://open.spotify.com/embed/playlist/4A6ZD9GoWRdB6avUex5dxr?utm_source=generator" width="100%" height="430" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="eager" title="Miliastra Spotify playlist"></iframe>
+            </div>
+            <a class="spotify-fallback secondary-btn wide" href="https://open.spotify.com/playlist/4A6ZD9GoWRdB6avUex5dxr?si=f893ac9232c54441" target="_blank" rel="noreferrer">Open Spotify playlist</a>
           </section>
         </div>
       </section>
@@ -156,7 +159,7 @@
           <div class="character-strip">
             <button class="avatar-button open-bot-profile" id="activeBotProfileBtn" type="button" title="Open ineffa profile"><img class="avatar-img large" id="activeBotAvatar" src="assets/ineffa-profile.webp" alt="ineffa" /></button>
             <div class="bot-meta"><h2 id="activeBotName">ineffa</h2><p id="activeBotDesc">Main bot of Miliastra</p></div>
-            <label class="bot-picker"><span>Bot</span><select id="botSelect" disabled><option>ineffa — locked</option></select><small>New bots are coming soon.</small></label>
+            <label class="bot-picker"><span>Bot</span><select id="botSelect" disabled><option>ineffa — locked</option></select><small>New bots are coming soon.</small></label><button class="secondary-btn bot-settings-open" id="openBotSettingsBtn" type="button">⚙️ Bot settings</button>
           </div>
 
           <div class="chat-quickbar interactive-panel">
@@ -237,7 +240,7 @@
               <h2>Erica Panganiban</h2>
               <p class="muted">Hi, my fellow Manekins and Manekinas from Miliastra.</p>
               <div class="link-row">
-                <a class="secondary-btn" href="https://www.instagram.com/ericapanganiban23/?hl=en" target="_blank" rel="noreferrer">Instagram</a>
+                <a class="secondary-btn social-link" href="https://www.instagram.com/ericapanganiban23/?hl=en" target="_blank" rel="noreferrer">Instagram</a>
                 <button class="secondary-btn copy-discord" type="button" data-copy="LaffeyZaychik">Discord: LaffeyZaychik</button>
               </div>
             </div>

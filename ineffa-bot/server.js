@@ -21,7 +21,7 @@ const DEFAULT_CHARACTER = process.env.DEFAULT_CHARACTER || process.env.VERBA_CHA
 const API_BASE = process.env.ERICA_API_BASE || "https://api.verba.ink";
 const RESPONSE_URL = `${API_BASE}/v1/response`;
 const IMAGE_URL = `${API_BASE}/v1/image`;
-const TENOR_API_KEY = process.env.TENOR_API_KEY || "LIVDSRZULELA";
+const GIPHY_API_KEY = process.env.GIPHY_API_KEY || "dc6zaTOxFJmzC"; // optional; app falls back to curated GIFs
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -153,23 +153,47 @@ app.get("/api/bot-profile", (_req, res) => {
   });
 });
 
+const curatedGifs = [
+  { keys: ["qiqi", "genshin", "zombie"], title: "Qiqi / Genshin style reaction", url: "https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif" },
+  { keys: ["elaina", "witch", "magic", "majo", "tabitabi"], title: "Witch magic reaction", url: "https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif" },
+  { keys: ["happy", "cute", "smile", "yay", "love"], title: "Happy sparkle reaction", url: "https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif" },
+  { keys: ["sad", "cry", "comfort", "tired", "stress"], title: "Comfort reaction", url: "https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif" },
+  { keys: ["hello", "hi", "hey", "wave"], title: "Greeting reaction", url: "https://media.giphy.com/media/ASd0Ukj0y3qMM/giphy.gif" },
+  { keys: ["food", "cafe", "tea", "coffee", "cake"], title: "Cozy café reaction", url: "https://media.giphy.com/media/3o7aD2saalBwwftBIY/giphy.gif" },
+  { keys: ["search", "web", "news", "find"], title: "Searching reaction", url: "https://media.giphy.com/media/3orieUe6ejxSFxYCXe/giphy.gif" },
+  { keys: ["art", "image", "draw", "paint"], title: "Art reaction", url: "https://media.giphy.com/media/3oEduT5R5xG4YdgO9G/giphy.gif" },
+  { keys: ["default"], title: "Miliastra reaction", url: "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif" }
+];
+
+function curatedGifResults(query) {
+  const hay = String(query || "").toLowerCase();
+  const ranked = curatedGifs
+    .map((gif) => ({ gif, score: gif.keys.reduce((n, key) => n + (hay.includes(key) ? 1 : 0), 0) }))
+    .sort((a, b) => b.score - a.score);
+  const chosen = ranked.filter((r) => r.score > 0).map((r) => r.gif);
+  const fallback = curatedGifs.filter((g) => !chosen.includes(g));
+  return [...chosen, ...fallback].slice(0, 8).map((gif, index) => ({ id: `curated_${index}`, title: gif.title, url: gif.url, preview: gif.url, source: "curated" }));
+}
+
 app.get("/api/gif", async (req, res) => {
+  const q = String(req.query.q || "anime reaction").trim().slice(0, 120) || "anime reaction";
   try {
-    const q = String(req.query.q || "anime reaction").trim().slice(0, 120) || "anime reaction";
-    const url = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q + " anime gif")}&key=${encodeURIComponent(TENOR_API_KEY)}&limit=12&media_filter=gif,tinygif&contentfilter=medium`;
-    const upstream = await fetch(url, { headers: { "Accept": "application/json" } });
-    const data = await upstream.json().catch(() => null);
-    if (!upstream.ok) return res.status(upstream.status).json({ message: "GIF search failed." });
-    const results = (data?.results || []).map((item) => ({
-      id: item.id,
-      title: item.content_description || q,
-      url: item.media_formats?.gif?.url || item.media_formats?.tinygif?.url,
-      preview: item.media_formats?.tinygif?.url || item.media_formats?.gif?.url
-    })).filter((item) => item.url);
-    res.json({ query: q, results });
+    // No Tenor: use GIPHY when an optional key works, otherwise return a curated GIF set immediately.
+    if (GIPHY_API_KEY) {
+      const url = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(q + " anime reaction")}&limit=8&rating=pg-13`;
+      const upstream = await fetch(url, { headers: { Accept: "application/json" } });
+      const data = await upstream.json().catch(() => null);
+      const results = (data?.data || []).map((item) => ({
+        id: item.id,
+        title: item.title || q,
+        url: item.images?.original?.url || item.images?.downsized_medium?.url || item.images?.fixed_height?.url,
+        preview: item.images?.fixed_height_small?.url || item.images?.preview_gif?.url
+      })).filter((item) => item.url);
+      if (results.length) return res.json({ query: q, results, provider: "giphy" });
+    }
+    return res.json({ query: q, results: curatedGifResults(q), provider: "curated" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error while searching GIFs." });
+    return res.json({ query: q, results: curatedGifResults(q), provider: "curated" });
   }
 });
 

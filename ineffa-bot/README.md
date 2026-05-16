@@ -117,3 +117,11 @@ Do not put API keys in frontend JavaScript. Keep them in `.env` only.
   - desktop/laptop/tablet: `login-desktop.mp4`
   - phone: `login-mobile.mp4`
 - Login background video is dimmed with 60% brightness/opacity styling and hidden controls.
+
+## v10 fixes
+
+- Fixed the custom cursor so it appears again on desktop and the white dot is the exact click point.
+- Styled the About Erica links so Instagram no longer appears as a default blue browser link.
+- Removed Tenor usage for GIFs. `/api/gif` now tries GIPHY with `GIPHY_API_KEY` and falls back to a curated GIF library.
+- Rebuilt the Spotify playlist embed with a stronger frame wrapper and a visible fallback button.
+- Added visible Bot Settings buttons from the chat header and homepage, which jump directly to the ineffa bot settings card.

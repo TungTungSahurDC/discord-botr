@@ -75,3 +75,58 @@ body.custom-cursor-enabled, body.custom-cursor-enabled * { cursor: none !importa
 
 @media (max-width: 860px){.floating-player{display:none!important}.bot-profile-head{align-items:flex-start}.bot-profile-card{padding:20px}.bot-profile-head img{width:74px;height:74px}.custom-cursor{display:none}.custom-cursor-enabled,.custom-cursor-enabled *{cursor:auto!important}}
 @media (max-width: 560px){.login-bg-video{opacity:.65}.bot-profile-grid{grid-template-columns:1fr}.bot-settings-card{min-width:0}}
+
+/* v10 fixes: visible accurate cursor, branded social link, reliable Spotify panel, visible bot settings */
+body.custom-cursor-enabled, body.custom-cursor-enabled * { cursor: none !important; }
+.custom-cursor{
+  pointer-events:none!important;
+  position:fixed!important;
+  z-index:2147483647!important;
+  left:-80px!important;
+  top:-80px!important;
+  width:42px!important;
+  height:42px!important;
+  transform:none!important;
+  opacity:1!important;
+  display:block!important;
+  mix-blend-mode:normal!important;
+}
+.custom-cursor::before{
+  content:"";
+  position:absolute;
+  left:0!important;
+  top:0!important;
+  width:9px!important;
+  height:9px!important;
+  border-radius:50%;
+  background:#fff;
+  border:2px solid var(--accent2);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent2),transparent 72%),0 0 18px var(--accent2),0 0 28px var(--accent);
+}
+.custom-cursor span{
+  position:absolute!important;
+  left:15px!important;
+  top:13px!important;
+  width:30px!important;
+  height:30px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:999px;
+  background:rgba(8,10,18,.76)!important;
+  border:1px solid color-mix(in srgb,var(--accent2),transparent 28%)!important;
+  color:var(--accent2)!important;
+  box-shadow:0 10px 26px rgba(0,0,0,.34),0 0 20px color-mix(in srgb,var(--accent),transparent 70%);
+  animation:cursorFloat 1.4s ease-in-out infinite;
+}
+.custom-cursor[data-cursor="none"]{display:none!important}.custom-cursor-enabled[data-force-native],.custom-cursor-enabled[data-force-native] *{cursor:auto!important}
+@media (pointer:coarse), (max-width:860px){.custom-cursor{display:none!important}body.custom-cursor-enabled,body.custom-cursor-enabled *{cursor:auto!important}}
+
+.social-link,.about-links a,.spotify-fallback{color:white!important;text-decoration:none!important;background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent2),var(--accent) 42%))!important;border:0!important;box-shadow:0 10px 24px color-mix(in srgb,var(--accent),transparent 72%)}
+.about-links a:hover,.social-link:hover,.spotify-fallback:hover{filter:brightness(1.12);transform:translateY(-2px)}
+.spotify-frame-wrap{width:100%;min-height:430px;border-radius:22px;overflow:hidden;border:1px solid var(--line);background:#121212;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 18px 38px rgba(0,0,0,.22)}
+.spotify-embed{display:block!important;width:100%!important;min-height:430px!important;border:0!important;background:#121212!important;opacity:1!important;visibility:visible!important}
+.spotify-panel{overflow:visible!important}.spotify-panel .spotify-fallback{margin-top:12px;justify-content:center}.spotify-panel.spotify-glow{animation:spotifyPulse 1.8s ease-in-out infinite}
+@keyframes spotifyPulse{0%,100%{box-shadow:var(--shadow),0 0 0 rgba(30,215,96,0)}50%{box-shadow:var(--shadow),0 0 42px rgba(30,215,96,.18)}}
+.bot-settings-open{white-space:nowrap}.bot-settings-card{outline:1px solid color-mix(in srgb,var(--accent2),transparent 42%);position:relative}.bot-settings-card::before{content:"Visible bot settings";position:absolute;right:14px;top:14px;font-size:11px;color:white;background:linear-gradient(135deg,var(--accent),var(--accent2));padding:5px 8px;border-radius:999px}.bot-settings-card.flash-focus{animation:settingsFlash 1.1s ease 2}.bot-settings-card label{display:grid;gap:7px;margin:10px 0}.bot-settings-card input,.bot-settings-card select{width:100%;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.075);color:var(--text);padding:11px 12px}
+@keyframes settingsFlash{0%,100%{box-shadow:var(--shadow)}50%{box-shadow:var(--shadow),0 0 0 4px color-mix(in srgb,var(--accent2),transparent 72%),0 0 46px color-mix(in srgb,var(--accent),transparent 58%)}}
+@media(max-width:760px){.bot-settings-open{width:100%}.character-strip{flex-wrap:wrap}.spotify-frame-wrap,.spotify-embed{min-height:360px!important}}
