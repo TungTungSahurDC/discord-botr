@@ -22,10 +22,32 @@
     <button class="icon-btn mini" id="hidePlayerBtn" type="button" title="Hide music player">×</button>
   </aside>
 
-  <section class="auth-screen" id="authScreen">
+
+  <section class="intro-screen" id="introScreen">
+    <div class="intro-bg" aria-hidden="true"><img src="assets/elaina-intro.jpg" alt="" /></div>
+    <div class="intro-mist" aria-hidden="true"></div>
+    <div class="intro-sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <article class="vn-card" id="vnCard" aria-live="polite">
+      <p class="eyebrow">Before entering Miliastra</p>
+      <h1>Who is Elaina?</h1>
+      <div class="vn-speaker">Elaina · The Ashen Witch</div>
+      <p class="vn-text" id="vnText"></p>
+      <div class="vn-progress"><span id="vnProgress"></span></div>
+      <div class="vn-actions">
+        <button class="secondary-btn" type="button" id="introBackBtn">Back</button>
+        <button class="secondary-btn" type="button" id="introNextBtn">Next</button>
+        <button class="primary-btn" type="button" id="introSkipBtn">Continue to login</button>
+      </div>
+      <p class="tiny-note">Tip: press Enter to continue or Esc to skip.</p>
+    </article>
+  </section>
+
+  <section class="auth-screen hidden" id="authScreen">
     <video class="login-bg-video" id="loginBgVideo" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
     <div class="login-video-dim" aria-hidden="true"></div>
     <div class="login-particles" id="loginParticles" aria-hidden="true"></div>
+    <img class="login-corner-gif login-gif-left" src="assets/majo-no-tabitabi-the-journey-of-elaina.gif" alt="Elaina animation" />
+    <img class="login-corner-gif login-gif-right" src="assets/29pllbwmez6c1.gif" alt="Elaina café animation" />
     <div class="auth-card pop-in">
       <img class="app-icon" src="assets/miliastra-icon.gif" alt="Miliastra icon" />
       <p class="eyebrow">Erica presents</p>

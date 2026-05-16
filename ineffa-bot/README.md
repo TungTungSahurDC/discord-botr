@@ -125,3 +125,11 @@ Do not put API keys in frontend JavaScript. Keep them in `.env` only.
 - Removed Tenor usage for GIFs. `/api/gif` now tries GIPHY with `GIPHY_API_KEY` and falls back to a curated GIF library.
 - Rebuilt the Spotify playlist embed with a stronger frame wrapper and a visible fallback button.
 - Added visible Bot Settings buttons from the chat header and homepage, which jump directly to the ineffa bot settings card.
+
+## v11 patch
+
+- Native cursor is no longer hidden. The Elaina-style cursor is now decorative, so normal clicking remains accurate.
+- Added a visual novel-style Elaina introduction before the login page.
+- Added the Elaina intro portrait as the introduction background.
+- Added two Elaina GIF decorations on the login screen, hidden automatically on mobile.
+- Login screen still uses the responsive autoplay background videos from v9.

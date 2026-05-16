@@ -9,6 +9,16 @@ let spotifyMode = false;
 let currentChatId = state.currentChatId || ensureChat().id;
 let musicUnlocked = false;
 let audioCtx;
+let introLineIndex = 0;
+let introTypingTimer = null;
+let introAutoTimer = null;
+
+const introLines = [
+  "A traveler arrives before the gates of Miliastra, carrying stories from countless lands.",
+  "Her name is Elaina — the Ashen Witch from Majo no Tabitabi, known for wandering from country to country with curiosity, wit, and a little smug confidence.",
+  "She observes beautiful places, strange customs, funny encounters, and sometimes bittersweet truths, recording each journey like pages in a living novel.",
+  "Tonight, her moonlit atmosphere opens the path to Miliastra & The Land Down Undah. Once this short tale ends, you will arrive at the login screen."
+];
 
 const musicTracks = [
   { id: "literature", title: "Majo no Tabitabi OP Literature Piano Cover", src: "assets/majo-literature-piano.mp3" },
@@ -351,6 +361,7 @@ function initAuth() {
 
 function enterApp() {
   state.sessionActive = true;
+  el("introScreen")?.classList.add("hidden");
   el("authScreen").classList.add("hidden");
   el("app").classList.remove("hidden");
   currentChatId = ensureChat().id;
@@ -362,7 +373,7 @@ function enterApp() {
 }
 
 function initNavigation() {
-  el("logoutBtn").addEventListener("click", () => { state.sessionActive = false; save(); el("app").classList.add("hidden"); el("authScreen").classList.remove("hidden"); toast("Logged out."); });
+  el("logoutBtn").addEventListener("click", () => { state.sessionActive = false; save(); el("app").classList.add("hidden"); showIntro(); toast("Logged out."); });
   document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)));
   document.querySelectorAll("[data-jump]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.jump)));
   el("menuBtn").addEventListener("click", () => el("sidebar").classList.toggle("open"));
@@ -774,6 +785,78 @@ function handleMessageAction(e) {
 }
 
 
+
+function showIntro() {
+  const intro = el("introScreen");
+  const auth = el("authScreen");
+  const app = el("app");
+  app?.classList.add("hidden");
+  auth?.classList.add("hidden");
+  intro?.classList.remove("hidden");
+  introLineIndex = 0;
+  typeIntroLine(0);
+}
+function showAuthScreen() {
+  clearTimeout(introTypingTimer);
+  clearTimeout(introAutoTimer);
+  el("introScreen")?.classList.add("hidden");
+  el("app")?.classList.add("hidden");
+  el("authScreen")?.classList.remove("hidden");
+  el("authUser")?.focus();
+  initLoginVideo();
+  playTone("page");
+}
+function typeIntroLine(index = introLineIndex) {
+  const textBox = el("vnText");
+  const progress = el("vnProgress");
+  if (!textBox) return;
+  clearTimeout(introTypingTimer);
+  clearTimeout(introAutoTimer);
+  introLineIndex = Math.max(0, Math.min(index, introLines.length - 1));
+  const full = introLines[introLineIndex];
+  let pos = 0;
+  textBox.textContent = "";
+  if (progress) progress.style.width = `${((introLineIndex) / introLines.length) * 100}%`;
+  const tick = () => {
+    textBox.textContent = full.slice(0, pos++);
+    if (pos <= full.length) {
+      introTypingTimer = setTimeout(tick, 24 + Math.random() * 18);
+    } else {
+      if (progress) progress.style.width = `${((introLineIndex + 1) / introLines.length) * 100}%`;
+      introAutoTimer = setTimeout(() => {
+        if (introLineIndex < introLines.length - 1) typeIntroLine(introLineIndex + 1);
+        else showAuthScreen();
+      }, introLineIndex === introLines.length - 1 ? 1850 : 1450);
+    }
+  };
+  tick();
+}
+function advanceIntro(delta = 1) {
+  const textBox = el("vnText");
+  const current = introLines[introLineIndex] || "";
+  if (textBox && textBox.textContent.length < current.length) {
+    clearTimeout(introTypingTimer);
+    textBox.textContent = current;
+    const progress = el("vnProgress");
+    if (progress) progress.style.width = `${((introLineIndex + 1) / introLines.length) * 100}%`;
+    return;
+  }
+  const next = introLineIndex + delta;
+  if (next < 0) return typeIntroLine(0);
+  if (next >= introLines.length) return showAuthScreen();
+  typeIntroLine(next);
+}
+function initIntro() {
+  el("introNextBtn")?.addEventListener("click", () => advanceIntro(1));
+  el("introBackBtn")?.addEventListener("click", () => advanceIntro(-1));
+  el("introSkipBtn")?.addEventListener("click", showAuthScreen);
+  el("introScreen")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") advanceIntro(1);
+    if (e.key === "Escape") showAuthScreen();
+  });
+  if (!state.sessionActive) showIntro();
+}
+
 function initLoginVideo() {
   const video = el("loginBgVideo");
   if (!video) return;
@@ -917,9 +1000,11 @@ function initKeyboardShortcuts() {
   document.addEventListener("keydown", (e) => {
     const mod = e.ctrlKey || e.metaKey;
     if (e.key === "Escape") {
+      if (!el("introScreen")?.classList.contains("hidden")) showAuthScreen();
       el("sidebar")?.classList.remove("open");
       el("shortcutDialog")?.close?.();
     }
+    if (e.key === "Enter" && !el("introScreen")?.classList.contains("hidden")) { e.preventDefault(); advanceIntro(1); }
     if (e.altKey && e.key.toLowerCase() === "u") { e.preventDefault(); el("authUser")?.focus(); }
     if (e.altKey && e.key.toLowerCase() === "p") { e.preventDefault(); el("authPass")?.focus(); }
     if (e.altKey && e.key.toLowerCase() === "h") { e.preventDefault(); showView("home"); }
@@ -950,7 +1035,7 @@ function initLoginParticles() {
     wrap.appendChild(p);
   }
 }
-initAuth(); initNavigation(); initProfile(); initSettings(); initChat(); initStudio(); initExtraInteractions(); initLoginParticles(); initHomeParticles(); applySettings();
+initIntro(); initAuth(); initNavigation(); initProfile(); initSettings(); initChat(); initStudio(); initExtraInteractions(); initLoginParticles(); initHomeParticles(); applySettings();
 if (state.sessionActive && (state.currentUser === null || state.users[state.currentUser])) enterApp();
 
 function initHomeParticles() {
