@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Miliastra & The Land Down Undah</title>
+  <link rel="icon" href="assets/miliastra-icon.gif" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <audio id="bgMusic" src="assets/majo-literature-piano.mp3" preload="auto"></audio>
+  <div class="stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="custom-cursor" id="customCursor" aria-hidden="true">✧</div>
+  <div class="toast-stack" id="toastStack"></div>
+  <aside class="floating-player" id="floatingPlayer" aria-live="polite">
+    <div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="floating-track">
+      <strong id="floatingMusicTitle">Literature Piano Cover</strong>
+      <span id="floatingMusicSub">Paused</span>
+    </div>
+    <button class="icon-btn mini" id="floatingMusicBtn" type="button" title="Play or pause music">♪</button>
+  </aside>
+
+  <section class="auth-screen" id="authScreen">
+    <div class="login-particles" id="loginParticles" aria-hidden="true"></div>
+    <div class="auth-card pop-in">
+      <img class="app-icon" src="assets/miliastra-icon.gif" alt="Miliastra icon" />
+      <p class="eyebrow">Erica presents</p>
+      <h1>Miliastra &amp; The Land Down Undah</h1>
+      <p class="muted">A cozy interactive chat world for ineffa. Your account, profile, themes, volume, and chat settings save locally in this browser.</p>
+      <div class="auth-tabs">
+        <button class="active" type="button" data-auth-tab="login">Log in</button>
+        <button type="button" data-auth-tab="signup">Sign up</button>
+      </div>
+      <form id="authForm" class="form-grid">
+        <input id="authName" type="text" placeholder="Display name" class="signup-only hidden" maxlength="32" />
+        <input id="authUser" type="text" placeholder="Username" required maxlength="28" autocomplete="username" />
+        <input id="authPass" type="password" placeholder="Password" required maxlength="64" autocomplete="current-password" />
+        <button class="primary-btn" type="submit" id="authSubmit">Log in</button>
+      </form>
+      <button class="ghost-link" id="guestBtn">Continue as guest</button>
+      <p class="tiny-note">For production, replace localStorage auth with a database and proper password hashing.</p>
+    </div>
+  </section>
+
+  <main class="app hidden" id="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-row">
+        <img class="brand-gif" src="assets/miliastra-icon.gif" alt="Miliastra" />
+        <div>
+          <p class="eyebrow">Miliastra</p>
+          <h2>The Land Down Undah</h2>
+        </div>
+      </div>
+
+      <button class="new-chat-btn" id="newChatBtn"><span>＋</span> New adventure</button>
+
+      <nav class="main-nav" id="mainNav">
+        <button class="active" data-view="home">🏠 Home</button>
+        <button data-view="chat">💬 Chat</button>
+        <button data-view="studio">🎨 Image Studio</button>
+        <button data-view="bots">🤖 Bots</button>
+        <button data-view="about">🌙 About Erica</button>
+        <button data-view="profile">🪪 Profile</button>
+        <button data-view="settings">✨ Settings</button>
+      </nav>
+
+      <div class="search-box"><input id="searchInput" type="text" placeholder="Search adventures" /></div>
+      <div class="chat-list" id="chatList"></div>
+
+      <div class="sidebar-footer">
+        <div class="mini-profile">
+          <img class="avatar-img small" id="miniAvatar" src="assets/ineffa-profile.webp" alt="Profile" />
+          <div><strong id="miniName">Guest</strong><span id="miniBot">with ineffa</span></div>
+        </div>
+        <button class="danger-lite" id="logoutBtn">Log out</button>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <button class="icon-btn mobile-only" id="menuBtn">☰</button>
+        <div class="top-title"><h1 id="viewTitle">Home</h1><p id="viewSub">Make the app feel alive.</p></div>
+        <div class="top-actions">
+          <button class="pill" id="musicToggle">🎵 Music</button>
+          <button class="pill" id="soundToggle">🔊 SFX</button>
+          <button class="pill" id="quickThemeBtn">🌈 Theme</button>
+          <button class="pill shortcut-hint" id="shortcutHelpBtn" title="Keyboard shortcuts">⌨️</button>
+        </div>
+      </header>
+
+      <section class="view home-view active" id="homeView">
+        <div class="hero-card shimmer">
+          <div class="hero-copy">
+            <p class="eyebrow">Welcome to</p>
+            <h2>Miliastra &amp; The Land Down Undah</h2>
+            <p>Talk with ineffa, generate images, customize your profile, change the whole app mood, and enjoy a soft piano background while exploring.</p>
+            <div class="hero-actions">
+              <button class="primary-btn" data-jump="chat">Start chatting</button>
+              <button class="secondary-btn" data-jump="studio">Open image studio</button>
+              <button class="secondary-btn" data-jump="settings">Customize</button>
+              <a class="age-badge" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noreferrer" title="17+ sign">17+</a>
+            </div>
+          </div>
+          <div class="mascot-card floaty">
+            <img src="assets/ineffa-profile.webp" alt="ineffa" />
+            <h3>ineffa</h3>
+            <p>Main bot online</p>
+          </div>
+        </div>
+
+        <div class="home-grid">
+          <section class="activity-panel">
+            <h3>Recent adventures</h3>
+            <div id="recentGrid" class="recent-grid"></div>
+          </section>
+          <section class="capabilities-panel interactive-panel">
+            <div class="panel-head"><h3>What ineffa can do</h3><span>Chat powers</span></div>
+            <div class="capability-grid">
+              <button class="cap-card" data-jump="chat" data-quick="Explain something with web search if needed."><b>🌐 Web search</b><span>Ask current or searchable questions.</span></button>
+              <button class="cap-card" data-jump="studio"><b>🎨 Image creation</b><span>Generate 1024×1024 images with references.</span></button>
+              <button class="cap-card" data-quick="Start a cozy roleplay scenario with me."><b>🎭 Roleplay</b><span>Load story/scenario prompts.</span></button>
+              <button class="cap-card" data-quick="Remember my name and respond to me personally."><b>💾 Session memory</b><span>Keeps context with session IDs.</span></button>
+              <button class="cap-card" data-quick="Help me write a cute message in a polished style."><b>✍️ Writing style</b><span>Markdown, tone, quote, and rewrite help.</span></button>
+              <button class="cap-card" data-jump="settings"><b>🌈 Custom UI</b><span>Themes, backgrounds, sounds, cursor, and music.</span></button>
+            </div>
+          </section>
+          <section class="discord-panel">
+            <div class="panel-head"><h3>Discord Server</h3><span>Community widget</span></div>
+            <iframe src="https://discord.com/widget?id=1492520858802192494&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts" title="Discord server widget"></iframe>
+          </section>
+          <section class="spotify-panel" id="spotifyPanel">
+            <div class="panel-head"><h3>Miliastra Playlist</h3><span id="spotifyStatus">Spotify ready</span></div>
+            <div class="music-now" id="musicNow">
+              <div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+              <div><strong id="musicNowTitle">Literature Piano Cover</strong><p class="muted" id="musicNowSub">Local music at 20% volume</p></div>
+            </div>
+            <div class="track-controls" id="trackControls">
+              <button class="secondary-btn" id="prevTrackBtn" type="button">⏮ Previous</button>
+              <button class="secondary-btn" id="nextTrackBtn" type="button">Next ⏭</button>
+            </div>
+            <div class="playlist-list" id="playlistList" aria-label="Local piano playlist"></div>
+            <button class="secondary-btn wide" id="spotifyModeBtn" type="button">Use Spotify / pause local music</button>
+            <iframe class="spotify-embed" style="border-radius:18px" src="https://open.spotify.com/embed/playlist/4A6ZD9GoWRdB6avUex5dxr?utm_source=generator&theme=0" width="100%" height="380" frameborder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" title="Spotify playlist"></iframe>
+            <a class="spotify-fallback" href="https://open.spotify.com/playlist/4A6ZD9GoWRdB6avUex5dxr?si=f893ac9232c54441" target="_blank" rel="noreferrer">Open Spotify playlist</a>
+          </section>
+        </div>
+      </section>
+
+      <section class="view chat-view" id="chatView">
+        <div class="chat-layout">
+          <div class="character-strip">
+            <img class="avatar-img large" id="activeBotAvatar" src="assets/ineffa-profile.webp" alt="ineffa" />
+            <div class="bot-meta"><h2 id="activeBotName">ineffa</h2><p id="activeBotDesc">Main bot of Miliastra</p></div>
+            <label class="bot-picker"><span>Bot</span><select id="botSelect" disabled><option>ineffa — locked</option></select><small>New bots are coming soon.</small></label>
+          </div>
+
+          <div class="chat-quickbar interactive-panel">
+            <button type="button" data-quick-chat="Use web search and tell me one interesting thing that happened recently.">🌐 Search current info</button>
+            <button type="button" data-quick-chat="Start a Genshin-style lore scenario with ineffa.">✨ Lore scenario</button>
+            <button type="button" data-quick-chat="Give me a comforting message and use my name.">🫶 Comfort me</button>
+            <button type="button" data-quick-chat="Help me make a creative image prompt.">🎨 Image prompt help</button>
+            <button type="button" id="clearChatBtn">🧹 Clear chat</button>
+          </div>
+
+          <div class="messages" id="messages" aria-live="polite"></div>
+
+          <form class="composer" id="chatForm">
+            <div class="format-toolbar" id="formatToolbar">
+              <button type="button" data-style="bold"><b>B</b></button>
+              <button type="button" data-style="italic"><em>I</em></button>
+              <button type="button" data-style="code">&lt;/&gt;</button>
+              <button type="button" data-style="quote">❝</button>
+              <button type="button" data-style="heading">H</button>
+              <button type="button" data-style="sparkle">✨</button>
+            </div>
+            <button type="button" class="round-btn" id="regenBtn" title="Regenerate last reply">↻</button>
+            <textarea id="messageInput" placeholder="Message ineffa..." rows="1" maxlength="4000"></textarea>
+            <button type="submit" class="send-btn" id="sendBtn">Send</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="view studio-view" id="studioView">
+        <div class="panel two-col">
+          <div>
+            <p class="eyebrow">Image Studio</p>
+            <h2>Generate with Erica</h2>
+            <p class="muted">Create 1024×1024 images. Add up to four reference image URLs when needed.</p>
+            <textarea id="imagePrompt" class="big-input" maxlength="1500" placeholder="Describe the image..."></textarea>
+            <div class="url-list" id="imageRefs"></div>
+            <button class="secondary-btn" id="addRefBtn">＋ Add reference URL</button>
+            <button class="primary-btn wide" id="generateImageBtn">Generate image</button>
+          </div>
+          <div class="gallery" id="gallery"><div class="empty-state">Generated images appear here.</div></div>
+        </div>
+      </section>
+
+      <section class="view bots-view" id="botsView">
+        <div class="panel coming-soon enhanced-panel">
+          <div>
+            <p class="eyebrow">Bot Builder</p>
+            <h2>Add new bot — coming soon</h2>
+            <p class="muted">The app is locked to ineffa for now. This section is prepared for future custom character URLs, avatar uploads, personality cards, and bot collections.</p>
+          </div>
+          <div class="bot-card locked-card glow-card">
+            <img src="assets/ineffa-profile.webp" alt="ineffa" />
+            <h3>ineffa</h3>
+            <p>Main bot available</p>
+          </div>
+        </div>
+        <div class="panel scenario-panel">
+          <p class="eyebrow">ineffa scenarios</p>
+          <h2>Story presets for roleplay</h2>
+          <p class="muted">Quick scenario ideas inspired by an original Genshin-style lore setup for ineffa. Pick one, then start the chat.</p>
+          <div class="scenario-grid">
+            <button class="scenario-card" data-scenario="Roleplay scenario: ineffa is guiding me through a misty nation border checkpoint after finding a strange glowing sigil."><strong>Border of the Mist</strong><span>A quiet escort through a dangerous checkpoint.</span></button>
+            <button class="scenario-card" data-scenario="Roleplay scenario: ineffa is a calm but sharp strategist helping me prepare for a festival duel in a fantasy city."><strong>Festival Duel Prep</strong><span>Training, banter, and strategy before the arena.</span></button>
+            <button class="scenario-card" data-scenario="Roleplay scenario: ineffa found an ancient letter linked to her past and asks me to investigate ruins with her."><strong>Ancient Letter</strong><span>A lore mystery inside moonlit ruins.</span></button>
+            <button class="scenario-card" data-scenario="Roleplay scenario: ineffa and I are resting at a rainy tavern while she slowly opens up about her journey."><strong>Rainy Tavern</strong><span>Cozy emotional conversation after a quest.</span></button>
+            <button class="scenario-card" data-scenario="Roleplay scenario: ineffa is protecting a floating archive from treasure hoarders while keeping her elegant composure."><strong>Floating Archive</strong><span>Magic books, thieves, and elegant chaos.</span></button>
+            <button class="scenario-card" data-scenario="Roleplay scenario: ineffa takes me stargazing and explains the constellations tied to her fate."><strong>Constellation Night</strong><span>Soft stargazing and fate-themed lore.</span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="view about-view" id="aboutView">
+        <div class="panel about-panel enhanced-panel">
+          <div class="about-hero">
+            <img class="about-icon floaty" src="assets/miliastra-icon.gif" alt="Miliastra icon" />
+            <div>
+              <p class="eyebrow">About the creator</p>
+              <h2>Erica Panganiban</h2>
+              <p class="muted">Hi, my fellow Manekins and Manekinas from Miliastra.</p>
+              <div class="link-row">
+                <a class="secondary-btn" href="https://www.instagram.com/ericapanganiban23/?hl=en" target="_blank" rel="noreferrer">Instagram</a>
+                <button class="secondary-btn copy-discord" type="button" data-copy="LaffeyZaychik">Discord: LaffeyZaychik</button>
+              </div>
+            </div>
+          </div>
+          <div class="about-grid">
+            <article><h3>Name</h3><p>I am Erica Panganiban.</p></article>
+            <article><h3>Age / Pronouns</h3><p>20–23, not an aunt bruh. She/Them.</p></article>
+            <article><h3>Home</h3><p>Currently living in the Philippines 🇵🇭, born in Germany.</p></article>
+            <article><h3>IRL</h3><p>IRL I am shy, but here I am a yapper. I speak German, Tagalog, Cebuano, and English.</p></article>
+            <article><h3>Likes</h3><p>Elaina from Majo no Tabitabi, and reading visual novels, especially A Light in the Dark.</p></article>
+            <article><h3>Dislikes</h3><p>Losing 50/50 in Genshin, playing Genshin.</p></article>
+            <article><h3>Hobbies</h3><p>Programming front and backend, singing, buying Elaina figurines, cooking, cosplay, and playing Genshin lyre.</p></article>
+            <article><h3>Games</h3><p>Mostly Genshin, Reverse 1999, Blue Archive, Stella Sora. Outside gacha: Hearts of Iron IV, Stellaris, Cities Skylines 1 & 2, War Thunder, map games, Stardew Valley, and osu.</p></article>
+            <article><h3>Work</h3><p>Currently working as a Statistical Specialist II.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="view profile-view" id="profileView">
+        <div class="panel two-col">
+          <form id="profileForm" class="form-grid card-form">
+            <p class="eyebrow">Profile</p><h2>Create your persona</h2>
+            <input id="profileName" placeholder="Display name" maxlength="32" />
+            <textarea id="profileBio" placeholder="Bio / persona notes" maxlength="500"></textarea>
+            <div class="pfp-picker-card">
+              <img id="uploadPreviewAvatar" src="assets/neverness-to-everness-nte.gif" alt="Selected profile picture" />
+              <div>
+                <strong>Profile picture</strong>
+                <p class="muted">Upload PNG, JPG, WEBP, or animated GIF. Your image is saved locally in this browser.</p>
+                <button class="secondary-btn" type="button" id="pickPfpBtn">Choose picture</button>
+              </div>
+              <input id="profilePicture" type="file" accept="image/*,.gif" hidden />
+            </div>
+            <div class="avatar-actions"><button class="secondary-btn" type="button" id="resetPfpBtn">Use default icon</button></div>
+            <button class="primary-btn" type="submit">Save profile</button>
+          </form>
+          <div class="profile-preview"><img class="avatar-img huge" id="profilePreviewAvatar" src="assets/neverness-to-everness-nte.gif" alt="Profile preview" /><h2 id="profilePreviewName">Guest</h2><p id="profilePreviewBio">No bio yet.</p></div>
+        </div>
+      </section>
+
+      <section class="view settings-view" id="settingsView">
+        <div class="panel settings-grid">
+          <div class="setting-card"><h3>Chat background</h3><div class="bg-options" id="bgOptions"></div></div>
+          <div class="setting-card"><h3>Theme scheme</h3><div class="scheme-options" id="schemeOptions"></div></div>
+          <div class="setting-card"><h3>Theme accent</h3><input id="accentPicker" type="color" value="#8c7cff" /><button class="secondary-btn" id="saveThemeBtn">Save theme</button><button class="secondary-btn" id="resetThemeBtn">Reset</button></div>
+          <div class="setting-card"><h3>Custom cursor</h3><select id="cursorSelect"><option value="wand">Elaina wand</option><option value="hat">Witch hat</option><option value="star">Magic star</option><option value="broom">Tiny broom</option><option value="book">Elaina book</option><option value="flower">Magic flower</option><option value="none">Default cursor</option></select><p class="muted">Small Elaina-inspired cursor items for the whole app.</p></div>
+          <div class="setting-card"><h3>Music playlist</h3><div class="mini-track-list" id="settingsPlaylistList"></div><div class="track-controls"><button class="secondary-btn" id="prevTrackSettingsBtn" type="button">⏮ Prev</button><button class="secondary-btn" id="nextTrackSettingsBtn" type="button">Next ⏭</button></div></div>
+          <div class="setting-card"><h3>Music volume</h3><input id="musicVolume" type="range" min="0" max="100" value="20" /><p class="muted"><span id="volumeLabel">20</span>% volume</p><button class="secondary-btn" id="playMusicBtn">Play music</button></div>
+          <div class="setting-card"><h3>Motion & sound</h3><label><input id="motionToggle" type="checkbox" checked /> Enable animations</label><label><input id="clickSoundToggle" type="checkbox" checked /> Button sounds</label></div>
+          <div class="setting-card"><h3>Erica API features</h3><label><input id="streamToggle" type="checkbox" /> Try streaming replies</label><label><input id="debugToolsToggle" type="checkbox" /> Debug tools</label><label><input id="toolToggle" type="checkbox" /> Enable web search while chatting</label><label><input id="contextGifToggle" type="checkbox" /> ineffa sends context GIF reactions</label></div>
+          <div class="setting-card"><h3>Data</h3><button class="secondary-btn" id="exportBtn">Export local data</button><button class="danger-lite" id="wipeBtn">Wipe local data</button></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog class="shortcut-dialog" id="shortcutDialog">
+    <div class="shortcut-card">
+      <button class="icon-btn close-shortcuts" id="closeShortcuts" type="button">×</button>
+      <p class="eyebrow">Keyboard shortcuts</p>
+      <h2>Miliastra controls</h2>
+      <div class="shortcut-grid">
+        <span><kbd>Alt</kbd> + <kbd>U</kbd></span><p>Focus username</p>
+        <span><kbd>Alt</kbd> + <kbd>P</kbd></span><p>Focus password</p>
+        <span><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd></span><p>Search adventures</p>
+        <span><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>N</kbd></span><p>New adventure</p>
+        <span><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></span><p>Submit login or send message</p>
+        <span><kbd>Esc</kbd></span><p>Close panels / sidebar</p>
+        <span><kbd>Alt</kbd> + <kbd>H</kbd></span><p>Home</p>
+        <span><kbd>Alt</kbd> + <kbd>C</kbd></span><p>Chat</p>
+        <span><kbd>Alt</kbd> + <kbd>S</kbd></span><p>Settings</p>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
