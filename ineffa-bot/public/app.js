@@ -1,4 +1,4 @@
-const LS = "miliastra_state_v5";
+const LS = "miliastra_state_v9";
 const DEFAULT_PFP = "assets/neverness-to-everness-nte.gif";
 const DEFAULT_BOT = { id: "ineffa", name: "ineffa", character: "https://verba.ink/v/ineffa_o1r", desc: "Main bot of Miliastra", avatar: "assets/ineffa-profile.webp" };
 
@@ -78,7 +78,9 @@ function defaultState() {
       debugTools: false,
       sampleTool: true,
       contextGifs: true,
-      currentTrack: 0
+      currentTrack: 0,
+      hideMusicPlayer: false,
+      botSettings: { style: "natural", temperature: 0.8, maxTokens: 900, nickname: "ineffa" }
     }
   };
 }
@@ -205,6 +207,10 @@ function applySettings() {
   audio.volume = (state.settings.musicVolume ?? 20) / 100;
   el("musicToggle").textContent = state.settings.music ? "🎵 Music" : "🔇 Music";
   el("soundToggle").textContent = state.settings.sfx ? "🔊 SFX" : "🔈 SFX";
+  const floatingPlayer = el("floatingPlayer");
+  floatingPlayer?.classList.toggle("hidden-player", !!state.settings.hideMusicPlayer);
+  if (el("hideMusicPlayerToggle")) el("hideMusicPlayerToggle").checked = !!state.settings.hideMusicPlayer;
+  syncBotSettingsControls();
   renderBackgrounds();
   renderSchemes();
   updateMusicPlayer(false);
@@ -212,8 +218,8 @@ function applySettings() {
 function moveCursor(e) {
   const cursor = el("customCursor");
   if (!cursor || state.settings.cursor === "none") return;
-  cursor.style.left = `${e.clientX}px`;
-  cursor.style.top = `${e.clientY}px`;
+  cursor.style.setProperty("--cursor-x", `${e.clientX}px`);
+  cursor.style.setProperty("--cursor-y", `${e.clientY}px`);
 }
 
 function currentTrack() {
@@ -277,6 +283,7 @@ function updateMusicPlayer(usingSpotify = spotifyMode) {
   const localPlaying = !!(audio && !audio.paused && state.settings.music && !usingSpotify);
   now.classList.toggle("spotify-active", usingSpotify);
   floating?.classList.toggle("active", usingSpotify || localPlaying || state.settings.music);
+  floating?.classList.toggle("hidden-player", !!state.settings.hideMusicPlayer);
   floating?.classList.toggle("spotify-active", usingSpotify);
   if (usingSpotify) {
     title.textContent = "Spotify playlist active";
@@ -364,6 +371,9 @@ function initNavigation() {
   });
   el("shortcutHelpBtn")?.addEventListener("click", () => el("shortcutDialog")?.showModal());
   el("closeShortcuts")?.addEventListener("click", () => el("shortcutDialog")?.close());
+  document.querySelectorAll(".open-bot-profile").forEach(btn => btn.addEventListener("click", openBotProfile));
+  el("closeBotProfile")?.addEventListener("click", () => el("botProfileDialog")?.close());
+  initLoginVideo();
 }
 function showView(view) {
   playTone("page");
@@ -464,6 +474,11 @@ function initSettings() {
     el("floatingPlayer")?.classList.add("active");
   });
   el("floatingMusicBtn")?.addEventListener("click", () => el("musicToggle")?.click());
+  el("hidePlayerBtn")?.addEventListener("click", () => { state.settings.hideMusicPlayer = true; save(); applySettings(); toast("Music player hidden."); });
+  el("showPlayerBtn")?.addEventListener("click", () => { state.settings.hideMusicPlayer = false; save(); applySettings(); updateMusicPlayer(false); toast("Music player shown."); });
+  el("hideMusicPlayerToggle")?.addEventListener("change", e => { state.settings.hideMusicPlayer = e.target.checked; save(); applySettings(); toast(e.target.checked ? "Music player hidden." : "Music player shown."); });
+  el("saveBotSettingsBtn")?.addEventListener("click", saveBotSettingsFromControls);
+  ["botStyleSelect", "botTempRange", "botTokensRange", "botNicknameInput"].forEach(id => el(id)?.addEventListener("input", updateBotSettingLabels));
   el("soundToggle").addEventListener("click", () => { state.settings.sfx = !state.settings.sfx; save(); applySettings(); });
   el("spotifyModeBtn")?.addEventListener("click", pauseLocalMusicForSpotify);
   el("spotifyPanel")?.addEventListener("mouseenter", () => { if (state.settings.music) { el("bgMusic").pause(); updateMusicPlayer(true); } });
@@ -580,6 +595,7 @@ async function sendMessage(text) {
   if (c.autoTitle || c.title === "New adventure") { c.title = makeTitle(text); c.autoTitle = false; }
   el("messageInput").value = ""; el("messageInput").style.height = "auto";
   save(); renderMessages(); renderChatList(); renderRecent();
+  if (isExplicitGifRequest(text)) { await sendSearchedGif(c, extractGifQuery(text)); return; }
   await requestAssistant(c);
 }
 
@@ -594,7 +610,7 @@ async function requestAssistant(c) {
       const data = await r.json(); if (!r.ok) throw new Error(data.message || "Chat failed");
       reply = data.reply; c.session_id = data.session_id || c.session_id;
     }
-    typing.remove(); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: reply || "...", createdAt: Date.now() }); maybeAddContextGif(c, `${c.messages.at(-2)?.content || ""} ${reply || ""}`); save(); renderMessages(); renderChatList(); renderRecent();
+    typing.remove(); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: reply || "...", createdAt: Date.now() }); await maybeAddContextGif(c, `${c.messages.at(-2)?.content || ""} ${reply || ""}`); save(); renderMessages(); renderChatList(); renderRecent();
   } catch (err) { typing.remove(); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: `Error: ${err.message}`, createdAt: Date.now() }); save(); renderMessages(); toast(err.message); }
 }
 function pickContextGif(text = "") {
@@ -602,9 +618,10 @@ function pickContextGif(text = "") {
   return gifReactions.find(g => g.keys.some(k => k !== "default" && hay.includes(k))) || gifReactions.at(-1);
 }
 
-function maybeAddContextGif(c, context) {
+async function maybeAddContextGif(c, context) {
   if (!state.settings.contextGifs) return;
-  const gif = pickContextGif(context);
+  const searched = await requestGif(extractGifQuery(context));
+  const gif = searched || pickContextGif(context);
   const last = c.messages.at(-1);
   if (last?.type === "gif" && last.url === gif.url) return;
   c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "gif", url: gif.url, label: gif.label, content: `[GIF] ${gif.label}`, createdAt: Date.now() + 1 });
@@ -614,13 +631,16 @@ function maybeAddContextGif(c, context) {
 function buildRequestBody(c) {
   const profile = currentProfile() || state.guestProfile;
   const displayName = (profile.name || "Guest").trim() || "Guest";
-  const personaContext = `Important profile context: The current user display name is "${displayName}". Address the user by this name when natural. Do not call the user Erica unless their display name is Erica. The app creator is Erica Panganiban, but the current user may be someone else. User bio/persona notes: ${(profile.bio || "none").slice(0, 350)}.`;
+  const bs = state.settings.botSettings || {};
+  const botName = (bs.nickname || DEFAULT_BOT.name).trim() || DEFAULT_BOT.name;
+  const styleHint = { natural: "Speak naturally and warmly.", cute: "Use a cute, cozy, slightly playful tone.", lore: "Lean into immersive lore, roleplay, and scene details.", concise: "Keep replies short and direct." }[bs.style || "natural"] || "Speak naturally.";
+  const personaContext = `Important profile context: The current user display name is "${displayName}". Address the user by this name when natural. Do not call the user Erica unless their display name is Erica. The app creator is Erica Panganiban, but the current user may be someone else. You are currently displayed as "${botName}". Bot reply style: ${styleHint} User bio/persona notes: ${(profile.bio || "none").slice(0, 350)}. If the user asks for a GIF, acknowledge it briefly because the app can attach a GIF result after your reply.`;
   const clean = c.messages.filter(m => m.type !== "image" && m.type !== "gif").slice(-60).map(m => ({ role: m.role, content: m.content }));
   const lastUserIndex = clean.map(m => m.role).lastIndexOf("user");
   if (lastUserIndex >= 0) clean[lastUserIndex] = { ...clean[lastUserIndex], content: `${personaContext}
 
 User message: ${clean[lastUserIndex].content}` };
-  const body = { character: DEFAULT_BOT.character, session_id: c.session_id, messages: clean, debug_tools: state.settings.debugTools };
+  const body = { character: DEFAULT_BOT.character, session_id: c.session_id, messages: clean, debug_tools: state.settings.debugTools, temperature: Number(bs.temperature ?? 0.8), max_tokens: Number(bs.maxTokens ?? 900) };
   if (state.settings.sampleTool) {
     body.tools = [{
       type: "function",
@@ -699,7 +719,7 @@ function renderRecent() {
   if (!recent.length) return r.innerHTML = `<div class="empty-state">No adventures yet.</div>`;
   recent.forEach(c => { const card = document.createElement("button"); card.className = "recent-card"; card.innerHTML = `<strong>${escapeHtml(c.title)}</strong><p class="muted">${c.messages.length} messages</p>`; card.addEventListener("click", () => { currentChatId = c.id; state.currentChatId = c.id; save(); renderMessages(); showView("chat"); }); r.appendChild(card); });
 }
-function renderBot() { el("activeBotAvatar").src = DEFAULT_BOT.avatar; el("activeBotName").textContent = DEFAULT_BOT.name; el("activeBotDesc").textContent = DEFAULT_BOT.desc; }
+function renderBot() { const nick = state.settings.botSettings?.nickname || DEFAULT_BOT.name; el("activeBotAvatar").src = DEFAULT_BOT.avatar; el("activeBotName").textContent = nick; el("activeBotDesc").textContent = DEFAULT_BOT.desc; }
 function renderAll() { renderProfile(); renderBot(); renderChatList(); renderMessages(); renderRecent(); renderGallery(); }
 
 function applyTextStyle(style) {
@@ -749,6 +769,95 @@ function handleMessageAction(e) {
     c.messages.splice(idx, 1); save(); renderMessages(); renderChatList(); renderRecent(); playTone("delete"); toast("Message deleted.");
   }
   if (action === "regen") regenerate();
+}
+
+
+function initLoginVideo() {
+  const video = el("loginBgVideo");
+  if (!video) return;
+  const setSource = () => {
+    const mobile = window.matchMedia("(max-width: 640px)").matches;
+    const src = mobile ? "assets/login-mobile.mp4" : "assets/login-desktop.mp4";
+    if (!video.src.endsWith(src)) {
+      video.src = src;
+      video.load();
+      video.play().catch(() => {});
+    }
+  };
+  setSource();
+  window.addEventListener("resize", setSource, { passive: true });
+}
+
+function syncBotSettingsControls() {
+  const bs = state.settings.botSettings ||= { style: "natural", temperature: 0.8, maxTokens: 900, nickname: "ineffa" };
+  if (el("botStyleSelect")) el("botStyleSelect").value = bs.style || "natural";
+  if (el("botTempRange")) el("botTempRange").value = bs.temperature ?? 0.8;
+  if (el("botTokensRange")) el("botTokensRange").value = bs.maxTokens ?? 900;
+  if (el("botNicknameInput")) el("botNicknameInput").value = bs.nickname || "ineffa";
+  updateBotSettingLabels();
+}
+function updateBotSettingLabels() {
+  if (el("botTempLabel") && el("botTempRange")) el("botTempLabel").textContent = Number(el("botTempRange").value).toFixed(1);
+  if (el("botTokensLabel") && el("botTokensRange")) el("botTokensLabel").textContent = el("botTokensRange").value;
+}
+function saveBotSettingsFromControls() {
+  state.settings.botSettings = {
+    style: el("botStyleSelect")?.value || "natural",
+    temperature: Number(el("botTempRange")?.value || 0.8),
+    maxTokens: Number(el("botTokensRange")?.value || 900),
+    nickname: (el("botNicknameInput")?.value || "ineffa").trim() || "ineffa"
+  };
+  save(); renderBot(); toast("ineffa bot settings saved."); playTone("success");
+}
+
+async function openBotProfile() {
+  const dialog = el("botProfileDialog");
+  const grid = el("botProfileGrid");
+  dialog?.showModal();
+  try {
+    const r = await fetch("/api/bot-profile");
+    const data = await r.json();
+    el("botProfileName").textContent = state.settings.botSettings?.nickname || data.name || "ineffa";
+    el("botProfileDesc").textContent = data.title || data.lore || "Main bot of Miliastra";
+    grid.innerHTML = `
+      <article><h3>Character ID</h3><p>${escapeHtml(data.id || "97f34dc7b45cfed1c0b86bdd")}</p></article>
+      <article><h3>Status</h3><p>${escapeHtml(data.status || "online")} · ${escapeHtml(data.provider_label || "Erica API")}</p></article>
+      <article><h3>Character URL</h3><p>${escapeHtml(data.character || DEFAULT_BOT.character)}</p></article>
+      <article><h3>Lore</h3><p>${escapeHtml(data.lore || DEFAULT_BOT.desc)}</p></article>
+      <article><h3>Capabilities</h3><ul>${(data.capabilities || []).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></article>
+      <article><h3>API limits</h3><p>Messages: ${escapeHtml(data.limits?.messages || 60)}<br>Image URLs: ${escapeHtml(data.limits?.image_urls || 4)}<br>Image size: ${escapeHtml(data.limits?.image_size || "1024x1024")}</p></article>`;
+  } catch (_) {
+    grid.innerHTML = `<article><h3>ineffa</h3><p>Main Miliastra bot profile is available offline. Chat, image, GIF, web search, and roleplay features are enabled in the app.</p></article>`;
+  }
+}
+
+function isExplicitGifRequest(text = "") {
+  return /\b(send|show|give|find|search|get)\b[\s\S]{0,40}\bgif\b/i.test(text) || /\bgif\b[\s\S]{0,30}\b(of|for|about)\b/i.test(text);
+}
+function extractGifQuery(text = "") {
+  const raw = String(text).replace(/https?:\/\/\S+/g, " ");
+  const m = raw.match(/gif\s+(?:of|for|about)?\s*([\s\S]{1,80})/i) || raw.match(/(?:send|show|give|find|search|get)\s+(?:me\s+)?(?:an?\s+)?gif\s+(?:of|for|about)?\s*([\s\S]{1,80})/i);
+  let q = (m?.[1] || raw).replace(/[?.!]+$/g, "").trim();
+  q = q.replace(/\b(please|pls|thanks|thank you|gif|send|show|give|find|search|get|me|an|a|of|for|about)\b/gi, " ").replace(/\s+/g, " ").trim();
+  return q || "anime reaction";
+}
+async function requestGif(query) {
+  try {
+    const r = await fetch(`/api/gif?q=${encodeURIComponent(query || "anime reaction")}`);
+    const data = await r.json();
+    const item = data.results?.[0];
+    if (!r.ok || !item?.url) return null;
+    return { url: item.url, label: `GIF: ${item.title || data.query || query}`, content: `[GIF] ${item.title || query}` };
+  } catch (_) { return null; }
+}
+async function sendSearchedGif(c, query) {
+  const typing = addBubble({ role: "assistant", type: "text", content: "" }, true);
+  const gif = await requestGif(query);
+  typing.remove();
+  c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: gif ? `Here is a GIF for **${query}** ✨` : `I could not find a live GIF for **${query}**, so I picked a matching reaction instead.`, createdAt: Date.now() });
+  const finalGif = gif || pickContextGif(query);
+  c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "gif", url: finalGif.url, label: finalGif.label, content: finalGif.content || `[GIF] ${finalGif.label}`, createdAt: Date.now() + 1 });
+  save(); renderMessages(); renderChatList(); renderRecent(); playTone("magic");
 }
 
 function initExtraInteractions() {

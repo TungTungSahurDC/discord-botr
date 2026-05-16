@@ -21,6 +21,7 @@ const DEFAULT_CHARACTER = process.env.DEFAULT_CHARACTER || process.env.VERBA_CHA
 const API_BASE = process.env.ERICA_API_BASE || "https://api.verba.ink";
 const RESPONSE_URL = `${API_BASE}/v1/response`;
 const IMAGE_URL = `${API_BASE}/v1/image`;
+const TENOR_API_KEY = process.env.TENOR_API_KEY || "LIVDSRZULELA";
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -121,6 +122,56 @@ function clampNumber(value, min, max, fallback) {
   if (!Number.isFinite(n)) return fallback;
   return Math.min(Math.max(n, min), max);
 }
+
+
+app.get("/api/bot-profile", (_req, res) => {
+  res.json({
+    id: "97f34dc7b45cfed1c0b86bdd",
+    name: "ineffa",
+    title: "Main bot of Miliastra",
+    character: DEFAULT_CHARACTER,
+    avatar: "/assets/ineffa-profile.webp",
+    status: "online",
+    provider_label: "Erica API",
+    capabilities: [
+      "Text chat with session memory",
+      "Web search through request-scoped tools",
+      "Image generation",
+      "Vision/reference image URLs",
+      "Context GIF reactions",
+      "Roleplay scenarios",
+      "User-name aware replies"
+    ],
+    limits: {
+      messages: 60,
+      message_text: "4000 characters each",
+      total_text: "20000 characters",
+      image_urls: 4,
+      image_size: "1024x1024"
+    },
+    lore: "ineffa is the main Miliastra companion: calm, observant, softly teasing, and ready for cozy roleplay, web searching, image prompts, and GIF reactions."
+  });
+});
+
+app.get("/api/gif", async (req, res) => {
+  try {
+    const q = String(req.query.q || "anime reaction").trim().slice(0, 120) || "anime reaction";
+    const url = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q + " anime gif")}&key=${encodeURIComponent(TENOR_API_KEY)}&limit=12&media_filter=gif,tinygif&contentfilter=medium`;
+    const upstream = await fetch(url, { headers: { "Accept": "application/json" } });
+    const data = await upstream.json().catch(() => null);
+    if (!upstream.ok) return res.status(upstream.status).json({ message: "GIF search failed." });
+    const results = (data?.results || []).map((item) => ({
+      id: item.id,
+      title: item.content_description || q,
+      url: item.media_formats?.gif?.url || item.media_formats?.tinygif?.url,
+      preview: item.media_formats?.tinygif?.url || item.media_formats?.gif?.url
+    })).filter((item) => item.url);
+    res.json({ query: q, results });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error while searching GIFs." });
+  }
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, app: "Miliastra & The Land Down Undah", main_bot: "ineffa", brand: "Erica", default_character: DEFAULT_CHARACTER });

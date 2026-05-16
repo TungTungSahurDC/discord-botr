@@ -105,3 +105,15 @@ Do not put API keys in frontend JavaScript. Keep them in `.env` only.
 - Local music now plays as a looping playlist across all three tracks instead of looping only one file.
 - Added next/previous track controls on the homepage and settings page.
 - Updated the animated music player labels to show the current track.
+
+## v9 update
+
+- Hides the native cursor when a custom Elaina-style cursor is active, while keeping clicks accurate.
+- Floating music player can be hidden/unhidden; it is automatically removed on mobile view.
+- Added editable ineffa bot settings: reply style, creativity/temperature, max tokens, and displayed bot nickname.
+- Clicking ineffa's icon opens a bot profile modal based on the app/API profile details.
+- Added live GIF search endpoint. Requests like "send me a gif of Qiqi from Genshin Impact" now return a searched GIF.
+- Login page now uses autoplaying muted background video:
+  - desktop/laptop/tablet: `login-desktop.mp4`
+  - phone: `login-mobile.mp4`
+- Login background video is dimmed with 60% brightness/opacity styling and hidden controls.

@@ -19,9 +19,12 @@
       <span id="floatingMusicSub">Paused</span>
     </div>
     <button class="icon-btn mini" id="floatingMusicBtn" type="button" title="Play or pause music">♪</button>
+    <button class="icon-btn mini" id="hidePlayerBtn" type="button" title="Hide music player">×</button>
   </aside>
 
   <section class="auth-screen" id="authScreen">
+    <video class="login-bg-video" id="loginBgVideo" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
+    <div class="login-video-dim" aria-hidden="true"></div>
     <div class="login-particles" id="loginParticles" aria-hidden="true"></div>
     <div class="auth-card pop-in">
       <img class="app-icon" src="assets/miliastra-icon.gif" alt="Miliastra icon" />
@@ -83,6 +86,7 @@
         <div class="top-title"><h1 id="viewTitle">Home</h1><p id="viewSub">Make the app feel alive.</p></div>
         <div class="top-actions">
           <button class="pill" id="musicToggle">🎵 Music</button>
+            <button class="pill" id="showPlayerBtn" type="button">🎼 Player</button>
           <button class="pill" id="soundToggle">🔊 SFX</button>
           <button class="pill" id="quickThemeBtn">🌈 Theme</button>
           <button class="pill shortcut-hint" id="shortcutHelpBtn" title="Keyboard shortcuts">⌨️</button>
@@ -103,7 +107,7 @@
             </div>
           </div>
           <div class="mascot-card floaty">
-            <img src="assets/ineffa-profile.webp" alt="ineffa" />
+            <img src="assets/ineffa-profile.webp" alt="ineffa" class="open-bot-profile" />
             <h3>ineffa</h3>
             <p>Main bot online</p>
           </div>
@@ -150,7 +154,7 @@
       <section class="view chat-view" id="chatView">
         <div class="chat-layout">
           <div class="character-strip">
-            <img class="avatar-img large" id="activeBotAvatar" src="assets/ineffa-profile.webp" alt="ineffa" />
+            <button class="avatar-button open-bot-profile" id="activeBotProfileBtn" type="button" title="Open ineffa profile"><img class="avatar-img large" id="activeBotAvatar" src="assets/ineffa-profile.webp" alt="ineffa" /></button>
             <div class="bot-meta"><h2 id="activeBotName">ineffa</h2><p id="activeBotDesc">Main bot of Miliastra</p></div>
             <label class="bot-picker"><span>Bot</span><select id="botSelect" disabled><option>ineffa — locked</option></select><small>New bots are coming soon.</small></label>
           </div>
@@ -204,7 +208,7 @@
             <p class="muted">The app is locked to ineffa for now. This section is prepared for future custom character URLs, avatar uploads, personality cards, and bot collections.</p>
           </div>
           <div class="bot-card locked-card glow-card">
-            <img src="assets/ineffa-profile.webp" alt="ineffa" />
+            <img src="assets/ineffa-profile.webp" alt="ineffa" class="open-bot-profile" />
             <h3>ineffa</h3>
             <p>Main bot available</p>
           </div>
@@ -284,11 +288,36 @@
           <div class="setting-card"><h3>Music volume</h3><input id="musicVolume" type="range" min="0" max="100" value="20" /><p class="muted"><span id="volumeLabel">20</span>% volume</p><button class="secondary-btn" id="playMusicBtn">Play music</button></div>
           <div class="setting-card"><h3>Motion & sound</h3><label><input id="motionToggle" type="checkbox" checked /> Enable animations</label><label><input id="clickSoundToggle" type="checkbox" checked /> Button sounds</label></div>
           <div class="setting-card"><h3>Erica API features</h3><label><input id="streamToggle" type="checkbox" /> Try streaming replies</label><label><input id="debugToolsToggle" type="checkbox" /> Debug tools</label><label><input id="toolToggle" type="checkbox" /> Enable web search while chatting</label><label><input id="contextGifToggle" type="checkbox" /> ineffa sends context GIF reactions</label></div>
+          <div class="setting-card bot-settings-card"><h3>ineffa bot settings</h3>
+            <label>Reply style<select id="botStyleSelect"><option value="natural">Natural</option><option value="cute">Cute and cozy</option><option value="lore">Lore / roleplay</option><option value="concise">Concise</option></select></label>
+            <label>Temperature <input id="botTempRange" type="range" min="0" max="2" step="0.1" value="0.8" /></label><p class="muted"><span id="botTempLabel">0.8</span> creativity</p>
+            <label>Max tokens <input id="botTokensRange" type="range" min="128" max="2000" step="64" value="900" /></label><p class="muted"><span id="botTokensLabel">900</span> max response tokens</p>
+            <label>Bot nickname<input id="botNicknameInput" maxlength="24" placeholder="ineffa" /></label>
+            <button class="secondary-btn" id="saveBotSettingsBtn" type="button">Save bot settings</button>
+          </div>
+          <div class="setting-card"><h3>Music player display</h3><label><input id="hideMusicPlayerToggle" type="checkbox" /> Hide floating player</label><p class="muted">On phones, the floating player is hidden automatically to keep the chat clean.</p></div>
           <div class="setting-card"><h3>Data</h3><button class="secondary-btn" id="exportBtn">Export local data</button><button class="danger-lite" id="wipeBtn">Wipe local data</button></div>
         </div>
       </section>
     </section>
   </main>
+
+  <dialog class="bot-profile-dialog" id="botProfileDialog">
+    <div class="bot-profile-card enhanced-panel">
+      <button class="icon-btn close-bot-profile" id="closeBotProfile" type="button">×</button>
+      <div class="bot-profile-head">
+        <img src="assets/ineffa-profile.webp" alt="ineffa profile" />
+        <div>
+          <p class="eyebrow">Bot profile</p>
+          <h2 id="botProfileName">ineffa</h2>
+          <p class="muted" id="botProfileDesc">Main bot of Miliastra</p>
+        </div>
+      </div>
+      <div class="bot-profile-grid" id="botProfileGrid">
+        <article><h3>Loading...</h3><p>Fetching profile details.</p></article>
+      </div>
+    </div>
+  </dialog>
 
   <dialog class="shortcut-dialog" id="shortcutDialog">
     <div class="shortcut-card">
