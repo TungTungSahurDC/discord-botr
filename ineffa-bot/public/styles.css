@@ -276,3 +276,74 @@ body.custom-cursor-enabled input[type="submit"] { cursor: pointer !important; }
   .vn-actions { justify-content: stretch; }
   .vn-actions button { flex: 1 1 auto; }
 }
+
+/* v12 patch: scrollable homepage, README patch log, collapsible bot info */
+html, body { min-height: 100%; }
+.workspace, .app { min-height: 0; }
+.workspace { overflow: hidden; }
+.view { height: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; }
+.home-view { padding-bottom: clamp(96px, 12vh, 180px); }
+.home-grid { align-items: start; }
+.patchlog-panel { padding: 20px; grid-column: 1 / -1; }
+.patch-log-list { display: grid; gap: 10px; margin-top: 14px; }
+.patch-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent), transparent 88%), rgba(255,255,255,.052));
+  overflow: hidden;
+  transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+.patch-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent2), transparent 35%); }
+.patch-card summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+.patch-card summary::-webkit-details-marker { display: none; }
+.patch-card summary strong { color: var(--text); }
+.patch-card summary span { color: var(--muted); font-size: 12px; }
+.patch-card summary::after { content: "＋"; font-weight: 900; color: var(--accent2); transition: transform .2s ease; }
+.patch-card[open] summary::after { transform: rotate(45deg); }
+.patch-card ul { margin: 0; padding: 0 18px 16px 34px; color: var(--muted); line-height: 1.65; }
+.patch-card li { margin: 4px 0; }
+.small-empty { min-height: 90px; }
+
+.character-strip { position: relative; flex-wrap: nowrap; transition: padding .22s ease, gap .22s ease, background .22s ease; }
+.bot-info-main { display: contents; }
+.compact-toggle { margin-left: 0; white-space: nowrap; min-width: 98px; }
+.character-strip.info-collapsed {
+  gap: 10px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent), transparent 88%), var(--panel));
+}
+.character-strip.info-collapsed .bot-info-main { display: none; }
+.character-strip.info-collapsed .avatar-img.large { width: 48px; height: 48px; }
+.character-strip.info-collapsed::after {
+  content: "ineffa info hidden · locked bot";
+  color: var(--muted);
+  font-size: 13px;
+  margin-right: auto;
+  animation: fadeUp .22s ease both;
+}
+
+@media (max-width: 900px) {
+  .view { padding: 16px; }
+  .home-grid { grid-template-columns: 1fr; }
+  .patchlog-panel { grid-column: auto; }
+  .character-strip { display: grid; grid-template-columns: auto 1fr auto; align-items: center; }
+  .bot-info-main { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
+  .bot-picker { width: 100%; margin-left: 0; }
+  .bot-settings-open { width: 100%; }
+  .character-strip.info-collapsed .bot-info-main { display: none; }
+}
+@media (max-width: 560px) {
+  .view { padding: 12px; }
+  .home-view { padding-bottom: 120px; }
+  .patch-card summary { align-items: flex-start; flex-direction: column; }
+  .character-strip { grid-template-columns: auto 1fr; }
+  .compact-toggle { grid-column: 2; justify-self: end; min-width: 92px; padding: 10px 12px; }
+  .character-strip.info-collapsed::after { font-size: 12px; }
+}

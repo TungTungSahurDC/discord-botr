@@ -133,3 +133,11 @@ Do not put API keys in frontend JavaScript. Keep them in `.env` only.
 - Added the Elaina intro portrait as the introduction background.
 - Added two Elaina GIF decorations on the login screen, hidden automatically on mobile.
 - Login screen still uses the responsive autoplay background videos from v9.
+
+## v12 patch
+
+- Added a homepage Patch Log panel that loads patch notes from `README.md` through `/api/patchlog`.
+- Fixed homepage scrolling on desktop, tablet, and mobile by making the active app view scrollable.
+- Added a hide/show toggle for the chat bot information strip.
+- The bot info strip now collapses the ineffa profile details, locked bot selector, and bot settings button while keeping a compact ineffa indicator visible.
+- The collapsed bot info preference is saved locally.

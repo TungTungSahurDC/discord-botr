@@ -173,15 +173,27 @@
             </div>
             <a class="spotify-fallback secondary-btn wide" href="https://open.spotify.com/playlist/4A6ZD9GoWRdB6avUex5dxr?si=f893ac9232c54441" target="_blank" rel="noreferrer">Open Spotify playlist</a>
           </section>
+
+          <section class="patchlog-panel interactive-panel">
+            <div class="panel-head"><h3>Patch Log</h3><span>From README.md</span></div>
+            <p class="muted">Latest Miliastra updates are loaded from the project README.</p>
+            <div class="patch-log-list" id="patchLogList">
+              <div class="empty-state small-empty">Loading patch notes...</div>
+            </div>
+          </section>
         </div>
       </section>
 
       <section class="view chat-view" id="chatView">
         <div class="chat-layout">
-          <div class="character-strip">
+          <div class="character-strip" id="botInfoStrip">
             <button class="avatar-button open-bot-profile" id="activeBotProfileBtn" type="button" title="Open ineffa profile"><img class="avatar-img large" id="activeBotAvatar" src="assets/ineffa-profile.webp" alt="ineffa" /></button>
-            <div class="bot-meta"><h2 id="activeBotName">ineffa</h2><p id="activeBotDesc">Main bot of Miliastra</p></div>
-            <label class="bot-picker"><span>Bot</span><select id="botSelect" disabled><option>ineffa — locked</option></select><small>New bots are coming soon.</small></label><button class="secondary-btn bot-settings-open" id="openBotSettingsBtn" type="button">⚙️ Bot settings</button>
+            <div class="bot-info-main">
+              <div class="bot-meta"><h2 id="activeBotName">ineffa</h2><p id="activeBotDesc">Main bot of Miliastra</p></div>
+              <label class="bot-picker"><span>Bot</span><select id="botSelect" disabled><option>ineffa — locked</option></select><small>New bots are coming soon.</small></label>
+              <button class="secondary-btn bot-settings-open" id="openBotSettingsBtn" type="button">⚙️ Bot settings</button>
+            </div>
+            <button class="secondary-btn compact-toggle" id="toggleBotInfoBtn" type="button" aria-expanded="true">Hide info</button>
           </div>
 
           <div class="chat-quickbar interactive-panel">

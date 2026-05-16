@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import path from "path";
+import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 
 // Miliastra & The Land Down Undah
@@ -41,6 +42,33 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json({ limit: "1.5mb" }));
 app.use(express.static(path.join(__dirname, "public")));
+
+
+app.get("/api/patchlog", async (_req, res) => {
+  try {
+    const readme = await readFile(path.join(__dirname, "README.md"), "utf8");
+    const lines = readme.split(/\r?\n/);
+    const sections = [];
+    let current = null;
+    for (const line of lines) {
+      const heading = line.match(/^##\s+(.+)/);
+      if (heading) {
+        if (current && current.items.length) sections.push(current);
+        current = { title: heading[1].trim(), items: [] };
+        continue;
+      }
+      if (!current) continue;
+      const item = line.match(/^[-*]\s+(.+)/);
+      if (item) current.items.push(item[1].trim());
+    }
+    if (current && current.items.length) sections.push(current);
+    const patchSections = sections.filter(section => /patch|update|fix|included/i.test(section.title));
+    res.json({ source: "README.md", patches: patchSections.slice(-9).reverse() });
+  } catch (error) {
+    res.status(500).json({ message: "Could not read README patch log." });
+  }
+});
+
 
 function requireKey(res) {
   if (!ERICA_API_KEY) {

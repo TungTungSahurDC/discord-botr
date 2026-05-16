@@ -90,6 +90,7 @@ function defaultState() {
       contextGifs: true,
       currentTrack: 0,
       hideMusicPlayer: false,
+      hideBotInfo: false,
       botSettings: { style: "natural", temperature: 0.8, maxTokens: 900, nickname: "ineffa" }
     }
   };
@@ -222,6 +223,7 @@ function applySettings() {
   floatingPlayer?.classList.toggle("hidden-player", !!state.settings.hideMusicPlayer);
   if (el("hideMusicPlayerToggle")) el("hideMusicPlayerToggle").checked = !!state.settings.hideMusicPlayer;
   syncBotSettingsControls();
+  syncBotInfoStrip();
   renderBackgrounds();
   renderSchemes();
   updateMusicPlayer(false);
@@ -368,8 +370,40 @@ function enterApp() {
   state.currentChatId = currentChatId;
   save();
   renderAll();
+  renderPatchLog();
   applySettings();
   setTimeout(() => unlockMusic(), 300);
+}
+
+
+function syncBotInfoStrip() {
+  const strip = el("botInfoStrip");
+  const btn = el("toggleBotInfoBtn");
+  if (!strip || !btn) return;
+  const hidden = !!state.settings.hideBotInfo;
+  strip.classList.toggle("info-collapsed", hidden);
+  btn.textContent = hidden ? "Show info" : "Hide info";
+  btn.setAttribute("aria-expanded", String(!hidden));
+}
+
+async function renderPatchLog() {
+  const wrap = el("patchLogList");
+  if (!wrap) return;
+  try {
+    const response = await fetch("/api/patchlog");
+    if (!response.ok) throw new Error("Patch log unavailable");
+    const data = await response.json();
+    const patches = Array.isArray(data.patches) ? data.patches : [];
+    if (!patches.length) throw new Error("No patch notes found");
+    wrap.innerHTML = patches.map((section, index) => `
+      <details class="patch-card" ${index === 0 ? "open" : ""}>
+        <summary><strong>${escapeHtml(section.title)}</strong><span>${escapeHtml(data.source || "README.md")}</span></summary>
+        <ul>${(section.items || []).slice(0, 8).map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      </details>
+    `).join("");
+  } catch (error) {
+    wrap.innerHTML = `<div class="empty-state small-empty">Could not load README patch notes.</div>`;
+  }
 }
 
 function initNavigation() {
@@ -383,6 +417,7 @@ function initNavigation() {
     save(); applySettings(); toast("Theme saved.");
   });
   el("shortcutHelpBtn")?.addEventListener("click", () => el("shortcutDialog")?.showModal());
+  el("toggleBotInfoBtn")?.addEventListener("click", () => { state.settings.hideBotInfo = !state.settings.hideBotInfo; save(); syncBotInfoStrip(); playTone("page"); });
   el("closeShortcuts")?.addEventListener("click", () => el("shortcutDialog")?.close());
   document.querySelectorAll(".open-bot-profile").forEach(btn => btn.addEventListener("click", openBotProfile));
   el("closeBotProfile")?.addEventListener("click", () => el("botProfileDialog")?.close());
@@ -396,6 +431,7 @@ function showView(view) {
   const [title, sub] = viewMeta[view] || viewMeta.home;
   el("viewTitle").textContent = title; el("viewSub").textContent = sub;
   el("sidebar").classList.remove("open");
+  if (view === "home") renderPatchLog();
 }
 
 function initProfile() {
