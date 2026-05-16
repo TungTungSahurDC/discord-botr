@@ -1,0 +1,119 @@
+# Miliastra & The Land Down Undah
+
+A full Node.js-hosted Erica-powered web app for the main bot **ineffa**.
+
+## Included updates
+
+- Miliastra animated GIF icon added.
+- ineffa profile image added.
+- Local sign up, login, logout, and guest mode.
+- Profile picture upload saved to localStorage.
+- Theme accent saving fixed.
+- Chat background saving fixed.
+- Music autoplay attempt with Majo no Tabitabi OPLiterature Piano Cover at 20% volume.
+- Music volume slider saved locally.
+- Sound effects toggle saved locally.
+- Discord server widget on the homepage.
+- Bot selector is intentionally locked to ineffa.
+- Add new bot / Bot Builder section is now marked Coming Soon.
+- Responsive layout for desktop, tablet, and phones.
+- Image Studio with up to 4 reference URLs.
+- Optional streaming, debug tools, and request-scoped tool schema toggle.
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env
+npm start
+```
+
+Open:
+
+```txt
+http://localhost:3000
+```
+
+## Environment
+
+```env
+ERICA_API_KEY=your_new_api_key_here
+DEFAULT_CHARACTER=https://verba.ink/v/ineffa_o1r
+PORT=3000
+```
+
+Do not put API keys in frontend JavaScript. Keep them in `.env` only.
+
+## Latest patch
+
+- Fixed theme schemes so the full app palette changes, not only the accent color.
+- Added theme-colored scrollbars.
+- Added more UI sounds: hover, click, send, success, error, and page-change tones.
+- Added Elaina-inspired custom cursor modes: wand, witch hat, magic star, and broom.
+- Added login particles.
+- Added extra animations across cards, buttons, messages, panels, icons, and selected themes.
+- Added About Erica Panganiban page with Instagram and Discord information.
+- Added locked Ineffa scenario presets based on fantasy/Genshin-style lore prompts.
+- Kept Add New Bot as Coming Soon and locked bot selection to ineffa.
+
+## v5 patch notes
+
+- Added automatic chat titles for new adventures.
+- Messages now show the user display name or bot name above each bubble.
+- Added message actions: copy, quote, retry assistant reply, and delete.
+- Fixed custom cursor alignment/hotspot so clicking feels natural.
+- Reworked button glaze into a cleaner subtle highlight.
+- Changed default user profile picture to `neverness-to-everness-nte.gif`.
+- Profile picture uploads now keep GIF animation instead of converting GIFs to JPEG.
+- Added a custom profile-picture picker design.
+- Added more UI sounds and particles on login/home.
+- Added extra Elaina-inspired cursor options.
+
+## v6 update notes
+
+- Web search is now enabled by default for ineffa through the Erica API request-scoped tool option.
+- The web search tool uses a public JSON search endpoint and is sent with `tool_choice: auto`.
+- Added keyboard shortcuts:
+  - Alt + U: focus username
+  - Alt + P: focus password
+  - Ctrl/Cmd + K: search adventures
+  - Ctrl/Cmd + N: new adventure
+  - Ctrl/Cmd + Enter: submit login or send chat
+  - Alt + H/C/S: Home, Chat, Settings
+  - Ctrl/Cmd + /: shortcut help
+- Added a 17+ homepage badge link.
+- Added Spotify playlist widget on the homepage.
+- Added animated music player status; local piano music pauses when Spotify mode is used.
+- Fixed the custom cursor hotspot so the actual click point is marked by the glowing dot.
+
+## v7 patch notes
+
+- Added a new “What ineffa can do” section on the homepage.
+- Added quick chat chips inside the chat screen.
+- Added clearer web-search-enabled behavior for ineffa through the request-scoped tool payload.
+- Added user profile context to chat requests so ineffa reads the current user’s saved display name instead of assuming the user is Erica.
+- Added a floating animated music player that appears when the music button is used.
+- Improved Spotify embed settings and added a fallback “Open Spotify playlist” link.
+- Fixed the decorative custom cursor so the browser’s real click point remains accurate.
+- Added more hover, message, card, panel, home, and music animations.
+
+## v8 patch
+
+- Added context-aware GIF reactions from ineffa after bot replies.
+- Added a setting to enable/disable GIF reactions.
+- Added two more piano tracks while retaining the original Literature piano cover.
+- Local music now plays as a looping playlist across all three tracks instead of looping only one file.
+- Added next/previous track controls on the homepage and settings page.
+- Updated the animated music player labels to show the current track.
+
+## v9 update
+
+- Hides the native cursor when a custom Elaina-style cursor is active, while keeping clicks accurate.
+- Floating music player can be hidden/unhidden; it is automatically removed on mobile view.
+- Added editable ineffa bot settings: reply style, creativity/temperature, max tokens, and displayed bot nickname.
+- Clicking ineffa's icon opens a bot profile modal based on the app/API profile details.
+- Added live GIF search endpoint. Requests like "send me a gif of Qiqi from Genshin Impact" now return a searched GIF.
+- Login page now uses autoplaying muted background video:
+  - desktop/laptop/tablet: `login-desktop.mp4`
+  - phone: `login-mobile.mp4`
+- Login background video is dimmed with 60% brightness/opacity styling and hidden controls.
