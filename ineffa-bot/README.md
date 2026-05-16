@@ -141,3 +141,13 @@ Do not put API keys in frontend JavaScript. Keep them in `.env` only.
 - Added a hide/show toggle for the chat bot information strip.
 - The bot info strip now collapses the ineffa profile details, locked bot selector, and bot settings button while keeping a compact ineffa indicator visible.
 - The collapsed bot info preference is saved locally.
+
+## v13 Patch
+
+- Context GIF reactions now use the current chat context instead of repeating one default GIF.
+- Auto GIFs rotate through multiple matching options and avoid repeating the previous GIF when possible.
+- After GIF reactions, the chat keeps focus on the latest text/image message and returns focus to the message box.
+- Image Studio now shows an animated generation stage while the image is being created.
+- Image results now show the image model label.
+- Generated images now include a Download image button in both chat and gallery.
+- Added a backend image download proxy at `/api/download-image` so generated images can be saved more reliably.

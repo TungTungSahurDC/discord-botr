@@ -28,15 +28,25 @@ const musicTracks = [
 
 const gifReactions = [
   { keys: ["hello", "hi", "hey", "greet", "welcome"], label: "ineffa greeting GIF", url: "https://media.giphy.com/media/ASd0Ukj0y3qMM/giphy.gif" },
+  { keys: ["hello", "hi", "wave", "welcome"], label: "warm hello GIF", url: "https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif" },
   { keys: ["happy", "cute", "smile", "yay", "nice", "good", "love"], label: "happy sparkle GIF", url: "https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif" },
+  { keys: ["happy", "excited", "win", "cute", "love"], label: "excited reaction GIF", url: "https://media.giphy.com/media/MDJ9IbxxvDUQM/giphy.gif" },
   { keys: ["sad", "cry", "comfort", "lonely", "tired", "stress", "pain"], label: "comfort GIF", url: "https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif" },
+  { keys: ["sad", "sorry", "pain", "tired", "comfort"], label: "soft comfort GIF", url: "https://media.giphy.com/media/ISOckXUybVfQ4/giphy.gif" },
   { keys: ["think", "explain", "study", "code", "program", "write", "homework"], label: "thinking GIF", url: "https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif" },
+  { keys: ["code", "program", "debug", "error", "fix"], label: "coding focus GIF", url: "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif" },
   { keys: ["magic", "witch", "elaina", "spell", "lore", "genshin", "quest", "scenario"], label: "magic mood GIF", url: "https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif" },
+  { keys: ["elaina", "witch", "majo", "tabitabi"], label: "Elaina witch GIF", url: "assets/majo-no-tabitabi-the-journey-of-elaina.gif" },
+  { keys: ["elaina", "witch", "coffee", "tea", "cute"], label: "Elaina cozy GIF", url: "assets/29pllbwmez6c1.gif" },
   { keys: ["food", "cook", "cafe", "tea", "coffee", "cake"], label: "cozy café GIF", url: "https://media.giphy.com/media/3o7aD2saalBwwftBIY/giphy.gif" },
   { keys: ["search", "web", "news", "current", "recent", "find"], label: "searching GIF", url: "https://media.giphy.com/media/3orieUe6ejxSFxYCXe/giphy.gif" },
   { keys: ["image", "draw", "art", "picture", "generate"], label: "art GIF", url: "https://media.giphy.com/media/3oEduT5R5xG4YdgO9G/giphy.gif" },
-  { keys: ["default"], label: "Miliastra reaction GIF", url: "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif" }
+  { keys: ["qiqi", "genshin", "zombie", "liyue"], label: "Genshin-style reaction GIF", url: "https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif" },
+  { keys: ["default"], label: "Miliastra reaction GIF", url: "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif" },
+  { keys: ["default"], label: "soft anime reaction GIF", url: "https://media.giphy.com/media/10UUe8ZsLnaqwo/giphy.gif" },
+  { keys: ["default"], label: "sparkle reaction GIF", url: "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif" }
 ];
+let lastAutoGifUrl = "";
 
 const bgChoices = [
   { id: "miliastra", name: "Miliastra", css: "radial-gradient(circle at top left, color-mix(in srgb, var(--accent), transparent 70%), transparent 26rem), linear-gradient(135deg, rgba(19,23,36,.94), rgba(10,12,22,.94))", preview: "linear-gradient(135deg,#221943,#0a0c16)" },
@@ -604,7 +614,7 @@ function renderChatList() {
     wrap.appendChild(btn);
   });
 }
-function renderMessages() {
+function renderMessages(focusLastText = false) {
   const wrap = el("messages"); wrap.innerHTML = "";
   const c = activeChat();
   if (!c.messages.length) {
@@ -612,13 +622,14 @@ function renderMessages() {
     return;
   }
   c.messages.forEach(m => addBubble(m));
-  scrollMessages();
+  if (focusLastText) scrollLastTextMessage(); else scrollMessages();
 }
 function addBubble(m, typing = false) {
   const wrap = el("messages");
   if (!m.id && !typing) m.id = crypto.randomUUID();
   const art = document.createElement("article");
   art.className = `message ${m.role}`;
+  art.dataset.messageType = m.type || "text";
   if (m.id) art.dataset.messageId = m.id;
   const isUser = m.role === "user";
   const displayName = isUser ? (currentProfile()?.name || "Guest") : DEFAULT_BOT.name;
@@ -628,7 +639,7 @@ function addBubble(m, typing = false) {
   meta.innerHTML = `<strong>${escapeHtml(displayName)}</strong><span>${isUser ? "You" : "Bot"} · ${formatTime(m.createdAt || Date.now())}</span>`;
   const bubble = document.createElement("div"); bubble.className = `bubble ${m.type === "image" ? "image-bubble" : ""} ${m.type === "gif" ? "gif-bubble" : ""}`;
   if (typing) bubble.innerHTML = `<span class="typing"><i></i><i></i><i></i></span>`;
-  else if (m.type === "image") bubble.innerHTML = `<img src="${escapeAttr(m.url)}" alt="Generated image"><p class="image-caption">${escapeHtml(m.prompt || "Generated image")}</p>`;
+  else if (m.type === "image") bubble.innerHTML = `<img src="${escapeAttr(m.url)}" alt="Generated image"><p class="image-caption">${escapeHtml(m.prompt || "Generated image")}</p><p class="image-model">Model: ${escapeHtml(m.model || "Erica image model · 1024×1024")}</p><a class="download-btn" href="/api/download-image?url=${encodeURIComponent(m.url)}" download>Download image</a>`;
   else if (m.type === "gif") bubble.innerHTML = `<img src="${escapeAttr(m.url)}" alt="${escapeAttr(m.label || "Reaction GIF")}" loading="lazy"><p class="image-caption">${escapeHtml(m.label || "ineffa sent a related GIF")}</p>`;
   else bubble.innerHTML = renderMarkdown(m.content || "");
   const actions = document.createElement("div"); actions.className = "message-actions";
@@ -659,20 +670,39 @@ async function requestAssistant(c) {
       const data = await r.json(); if (!r.ok) throw new Error(data.message || "Chat failed");
       reply = data.reply; c.session_id = data.session_id || c.session_id;
     }
-    typing.remove(); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: reply || "...", createdAt: Date.now() }); await maybeAddContextGif(c, `${c.messages.at(-2)?.content || ""} ${reply || ""}`); save(); renderMessages(); renderChatList(); renderRecent();
+    typing.remove(); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: reply || "...", createdAt: Date.now() }); await maybeAddContextGif(c, `${c.messages.at(-2)?.content || ""} ${reply || ""}`); save(); renderMessages(true); renderChatList(); renderRecent(); el("messageInput")?.focus();
   } catch (err) { typing.remove(); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: `Error: ${err.message}`, createdAt: Date.now() }); save(); renderMessages(); toast(err.message); }
+}
+function contextToGifQuery(text = "") {
+  const cleaned = String(text)
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/[`*_>#~|{}[\]()]/g, " ")
+    .replace(/\b(important profile context|user message|ineffa|bot|assistant|please|thanks|thank you)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const priority = ["qiqi", "genshin", "elaina", "witch", "magic", "sad", "comfort", "happy", "coding", "programming", "food", "cafe", "search", "image", "art", "love", "study"];
+  const found = priority.filter(k => cleaned.toLowerCase().includes(k)).slice(0, 3).join(" ");
+  return (found || cleaned.split(" ").slice(-8).join(" ") || "anime reaction").slice(0, 110);
 }
 function pickContextGif(text = "") {
   const hay = String(text).toLowerCase();
-  return gifReactions.find(g => g.keys.some(k => k !== "default" && hay.includes(k))) || gifReactions.at(-1);
+  const scored = gifReactions
+    .map((g, index) => ({ g, index, score: g.keys.reduce((n, k) => n + (hay.includes(k) ? 1 : 0), 0) }))
+    .filter(x => x.score > 0 || x.g.keys.includes("default"));
+  const bestScore = Math.max(...scored.map(x => x.score));
+  const pool = scored.filter(x => x.score === bestScore && x.g.url !== lastAutoGifUrl);
+  const fallbackPool = scored.filter(x => x.g.url !== lastAutoGifUrl);
+  const usable = pool.length ? pool : (fallbackPool.length ? fallbackPool : scored);
+  const chosen = usable[Math.floor(Math.random() * usable.length)]?.g || gifReactions.at(-1);
+  lastAutoGifUrl = chosen.url;
+  return chosen;
 }
 
 async function maybeAddContextGif(c, context) {
   if (!state.settings.contextGifs) return;
-  const searched = await requestGif(extractGifQuery(context));
+  const query = contextToGifQuery(context);
+  const searched = await requestGif(query, true);
   const gif = searched || pickContextGif(context);
-  const last = c.messages.at(-1);
-  if (last?.type === "gif" && last.url === gif.url) return;
   c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "gif", url: gif.url, label: gif.label, content: `[GIF] ${gif.label}`, createdAt: Date.now() + 1 });
   playTone("magic");
 }
@@ -745,21 +775,30 @@ function addRefInput(value = "") {
 async function generateImage() {
   const prompt = el("imagePrompt").value.trim(); if (!prompt) return toast("Write an image prompt first.");
   const refs = [...el("imageRefs").querySelectorAll("input")].map(i => i.value.trim()).filter(Boolean).slice(0, 4);
-  el("generateImageBtn").disabled = true; el("generateImageBtn").textContent = "Generating...";
+  setImageGenerating(true, prompt);
   try {
     const c = activeChat();
     const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ character: DEFAULT_BOT.character, session_id: c.session_id, prompt, image_urls: refs }) });
     const data = await r.json(); if (!r.ok) throw new Error(data.message || "Image failed");
     c.session_id = data.session_id || c.session_id;
-    const item = { url: data.image_url, prompt: data.revised_prompt || prompt, createdAt: Date.now() };
-    gallery().unshift(item); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "image", url: item.url, prompt: item.prompt, createdAt: Date.now() }); save(); renderGallery(); renderMessages(); toast("Image generated.");
+    const item = { url: data.image_url, prompt: data.revised_prompt || prompt, model: data.model || "Erica image model · 1024×1024", createdAt: Date.now() };
+    gallery().unshift(item); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "image", url: item.url, prompt: item.prompt, model: item.model, createdAt: Date.now() }); save(); renderGallery(); renderMessages(true); toast(`Image generated with ${item.model}.`);
   } catch (err) { toast(err.message); }
-  finally { el("generateImageBtn").disabled = false; el("generateImageBtn").textContent = "Generate image"; }
+  finally { setImageGenerating(false); }
+}
+function setImageGenerating(isGenerating, prompt = "") {
+  const btn = el("generateImageBtn");
+  const stage = el("imageGenStage");
+  if (btn) { btn.disabled = isGenerating; btn.textContent = isGenerating ? "Generating magic..." : "Generate image"; }
+  if (stage) {
+    stage.classList.toggle("active", isGenerating);
+    stage.innerHTML = isGenerating ? `<div class="gen-orb"><span></span><i></i><b></b></div><strong>Painting your image...</strong><p>Model: Erica image model · 1024×1024</p><small>${escapeHtml(prompt)}</small>` : `<div class="gen-idle">Image generation status appears here. Model: Erica image model · 1024×1024.</div>`;
+  }
 }
 function renderGallery() {
   const g = el("gallery"); g.innerHTML = "";
   if (!gallery().length) return g.innerHTML = `<div class="empty-state">Generated images appear here.</div>`;
-  gallery().forEach(img => { const card = document.createElement("div"); card.className = "image-card"; card.innerHTML = `<img src="${escapeAttr(img.url)}" alt="Generated"><p class="image-caption">${escapeHtml(img.prompt)}</p>`; g.appendChild(card); });
+  gallery().forEach(img => { const card = document.createElement("div"); card.className = "image-card"; card.innerHTML = `<img src="${escapeAttr(img.url)}" alt="Generated"><p class="image-caption">${escapeHtml(img.prompt)}</p><p class="image-model">Model: ${escapeHtml(img.model || "Erica image model · 1024×1024")}</p><a class="download-btn" href="/api/download-image?url=${encodeURIComponent(img.url)}" download>Download image</a>`; g.appendChild(card); });
 }
 
 function renderRecent() {
@@ -784,6 +823,15 @@ function renderMarkdown(text) {
 function exportData() { const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "miliastra-local-data.json"; a.click(); URL.revokeObjectURL(a.href); }
 function makeTitle(text) { return text.replace(/\s+/g, " ").slice(0, 34) + (text.length > 34 ? "..." : ""); }
 function scrollMessages() { requestAnimationFrame(() => { el("messages").scrollTop = el("messages").scrollHeight; }); }
+function scrollLastTextMessage() {
+  requestAnimationFrame(() => {
+    const wrap = el("messages");
+    const textMessages = [...wrap.querySelectorAll('.message[data-message-type="text"], .message[data-message-type="image"]')];
+    const target = textMessages.at(-1);
+    if (target) target.scrollIntoView({ block: "nearest", behavior: state.settings.motion ? "smooth" : "auto" });
+    else wrap.scrollTop = wrap.scrollHeight;
+  });
+}
 function escapeHtml(t) { return String(t).replace(/[&<>'"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c])); }
 function escapeAttr(t) { return escapeHtml(t).replace(/`/g, "&#96;"); }
 
@@ -962,12 +1010,15 @@ function extractGifQuery(text = "") {
   q = q.replace(/\b(please|pls|thanks|thank you|gif|send|show|give|find|search|get|me|an|a|of|for|about)\b/gi, " ").replace(/\s+/g, " ").trim();
   return q || "anime reaction";
 }
-async function requestGif(query) {
+async function requestGif(query, randomize = false) {
   try {
     const r = await fetch(`/api/gif?q=${encodeURIComponent(query || "anime reaction")}`);
     const data = await r.json();
-    const item = data.results?.[0];
+    const results = data.results || [];
+    const candidates = results.filter(x => x?.url && x.url !== lastAutoGifUrl);
+    const item = randomize ? (candidates[Math.floor(Math.random() * candidates.length)] || results[0]) : results[0];
     if (!r.ok || !item?.url) return null;
+    if (item?.url) lastAutoGifUrl = item.url;
     return { url: item.url, label: `GIF: ${item.title || data.query || query}`, content: `[GIF] ${item.title || query}` };
   } catch (_) {
     return pickContextGif(query);
@@ -980,7 +1031,7 @@ async function sendSearchedGif(c, query) {
   c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: gif ? `Here is a GIF for **${query}** ✨` : `I could not find a live GIF for **${query}**, so I picked a matching reaction instead.`, createdAt: Date.now() });
   const finalGif = gif || pickContextGif(query);
   c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "gif", url: finalGif.url, label: finalGif.label, content: finalGif.content || `[GIF] ${finalGif.label}`, createdAt: Date.now() + 1 });
-  save(); renderMessages(); renderChatList(); renderRecent(); playTone("magic");
+  save(); renderMessages(true); renderChatList(); renderRecent(); el("messageInput")?.focus(); playTone("magic");
 }
 
 function openBotSettingsPanel() {

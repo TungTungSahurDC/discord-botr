@@ -325,10 +325,28 @@ app.post("/api/image", async (req, res) => {
     const imageUrl = data?.data?.[0]?.url;
     if (!imageUrl) return res.status(502).json({ message: "Erica did not return an image URL." });
 
-    res.json({ image_url: imageUrl, revised_prompt: data?.revised_prompt || prompt, session_id: data?.session_id || sessionId || null, raw: process.env.NODE_ENV === "development" ? data : undefined });
+    res.json({ image_url: imageUrl, revised_prompt: data?.revised_prompt || prompt, model: data?.model || "Erica image model · 1024×1024", created: data?.created || Date.now(), session_id: data?.session_id || sessionId || null, raw: process.env.NODE_ENV === "development" ? data : undefined });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error while generating image." });
+  }
+});
+
+
+app.get("/api/download-image", async (req, res) => {
+  try {
+    const url = String(req.query.url || "");
+    if (!/^https?:\/\//i.test(url)) return res.status(400).send("Invalid image URL");
+    const upstream = await fetch(url, { headers: { Accept: "image/*,*/*" } });
+    if (!upstream.ok) return res.status(upstream.status).send("Could not download image");
+    const contentType = upstream.headers.get("content-type") || "image/png";
+    const ext = contentType.includes("jpeg") ? "jpg" : contentType.includes("webp") ? "webp" : contentType.includes("gif") ? "gif" : "png";
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="miliastra-image-${Date.now()}.${ext}"`);
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).send("Download failed");
   }
 });
 
