@@ -165,3 +165,18 @@ Do not put API keys in frontend JavaScript. Keep them in `.env` only.
 - Added Discord-style emoji reactions for the latest user message beside the chat textbox.
 - Added click-to-preview modal for Image Studio generated images.
 - Improved the Discord server widget area on the homepage.
+
+## v15 Patch Notes
+
+- Limited the adventure list height to five visible chats, then scrolls when there are six or more.
+- Improved adventure text wrapping so chat titles and previews are less likely to look cut off.
+- Switching between ineffa and qiqi now creates a fresh adventure for the selected bot.
+- Emoji reactions now work on user and bot messages, with per-message reaction buttons.
+- Bots can now react back to user messages with small emoji reactions.
+- Updated the bot switcher to match the current theme colors.
+- Logout now refreshes the browser and returns to the login screen.
+- The comfort quick button now refreshes based on the currently selected bot.
+- Expanded the chat text input so typing uses the full message width before wrapping.
+- Fixed the bot info header styling so it no longer appears flat black.
+- Fixed Image Studio gallery alignment and empty-state centering.
+- Fixed custom cursor visibility again by using CSS variable positioning.

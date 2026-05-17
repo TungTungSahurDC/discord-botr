@@ -1,4 +1,4 @@
-const LS = "miliastra_state_v14";
+const LS = "miliastra_state_v15";
 const DEFAULT_PFP = "assets/neverness-to-everness-nte.gif";
 const BOTS = {
   ineffa: { id: "ineffa", name: "ineffa", character: "https://verba.ink/v/ineffa_o1r", desc: "Main bot of Miliastra", avatar: "assets/ineffa-profile.webp", idLabel: "97f34dc7b45cfed1c0b86bdd" },
@@ -115,6 +115,8 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(LS));
     if (saved) return merge(defaultState(), saved);
+    const v14 = JSON.parse(localStorage.getItem("miliastra_state_v14"));
+    if (v14) return merge(defaultState(), v14);
     const old = JSON.parse(localStorage.getItem("miliastra_state_v3"));
     if (old) return merge(defaultState(), old);
   } catch (_) {}
@@ -257,8 +259,8 @@ function moveCursor(e) {
   const cursor = el("customCursor");
   if (!cursor || state.settings.cursor === "none") return;
   // Use physical left/top instead of transform variables so the white dot is the exact click point.
-  cursor.style.left = `${e.clientX}px`;
-  cursor.style.top = `${e.clientY}px`;
+  cursor.style.setProperty("--cx", `${e.clientX}px`);
+  cursor.style.setProperty("--cy", `${e.clientY}px`);
 }
 
 function currentTrack() {
@@ -432,7 +434,7 @@ async function renderPatchLog() {
 }
 
 function initNavigation() {
-  el("logoutBtn").addEventListener("click", () => { state.sessionActive = false; save(); el("app").classList.add("hidden"); showIntro(); toast("Logged out."); });
+  el("logoutBtn").addEventListener("click", () => { state.sessionActive = false; save(); sessionStorage.setItem("miliastra_logout_to_login", "1"); location.reload(); });
   document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)));
   document.querySelectorAll("[data-jump]").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.jump)));
   el("menuBtn").addEventListener("click", () => el("sidebar").classList.toggle("open"));
@@ -593,7 +595,7 @@ function renderSchemes() {
 }
 
 function initChat() {
-  el("newChatBtn").addEventListener("click", () => { const c = createChat(); chats().unshift(c); currentChatId = c.id; state.currentChatId = c.id; save(); renderAll(); showView("chat"); playTone("magic"); toast(`Created ${c.title}`); });
+  el("newChatBtn").addEventListener("click", () => { const c = createChat(); c.title = `${currentBotSettings().nickname || currentBot().name} adventure`; chats().unshift(c); currentChatId = c.id; state.currentChatId = c.id; save(); renderAll(); showView("chat"); playTone("magic"); toast(`Created ${c.title}`); });
   el("searchInput").addEventListener("input", renderChatList);
   el("chatForm").addEventListener("submit", e => { e.preventDefault(); sendMessage(el("messageInput").value.trim()); });
   el("messageInput").addEventListener("input", e => { e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`; });
@@ -635,7 +637,7 @@ function renderMessages(focusLastText = false) {
   if (c.botId && BOTS[c.botId] && state.settings.activeBot !== c.botId) state.settings.activeBot = c.botId;
   renderBot();
   if (!c.messages.length) {
-    wrap.innerHTML = `<div class="empty-state">Start a new adventure with ineffa ✨</div>`;
+    wrap.innerHTML = `<div class="empty-state">Start a new adventure with ${escapeHtml(currentBotSettings().nickname || currentBot().name)} ✨</div>`;
     return;
   }
   c.messages.forEach(m => addBubble(m));
@@ -646,6 +648,7 @@ function addBubble(m, typing = false) {
   if (!m.id && !typing) m.id = crypto.randomUUID();
   const art = document.createElement("article");
   art.className = `message ${m.role}`;
+  art.dataset.role = m.role;
   art.dataset.messageType = m.type || "text";
   if (m.id) art.dataset.messageId = m.id;
   const isUser = m.role === "user";
@@ -662,7 +665,7 @@ function addBubble(m, typing = false) {
   else if (m.type === "gif") bubble.innerHTML = `<img src="${escapeAttr(m.url)}" alt="${escapeAttr(m.label || "Reaction GIF")}" loading="lazy"><p class="image-caption">${escapeHtml(m.label || "ineffa sent a related GIF")}</p>`;
   else bubble.innerHTML = renderMarkdown(m.content || "");
   const actions = document.createElement("div"); actions.className = "message-actions";
-  if (!typing) actions.innerHTML = `<button type="button" data-msg-action="copy">Copy</button><button type="button" data-msg-action="quote">Quote</button>${(!isUser && m.type === "text") ? '<button type="button" data-msg-action="regen">Retry</button>' : ''}<button type="button" data-msg-action="delete">Delete</button>`;
+  if (!typing) actions.innerHTML = `<button type="button" data-msg-action="copy">Copy</button><button type="button" data-msg-action="quote">Quote</button><button type="button" data-msg-action="react" data-emoji="💜">💜</button><button type="button" data-msg-action="react" data-emoji="✨">✨</button>${(!isUser && m.type === "text") ? '<button type="button" data-msg-action="regen">Retry</button>' : ''}<button type="button" data-msg-action="delete">Delete</button>`;
   if (Array.isArray(m.reactions) && m.reactions.length) { const reactRow = document.createElement("div"); reactRow.className = "message-reactions"; reactRow.innerHTML = m.reactions.map(r => `<span>${escapeHtml(r)}</span>`).join(""); body.append(meta, bubble, reactRow, actions); } else body.append(meta, bubble, actions);
   art.append(img, body); wrap.appendChild(art); scrollMessages(); return art;
 }
@@ -691,7 +694,11 @@ async function requestAssistant(c) {
       const data = await r.json(); if (!r.ok) throw new Error(data.message || "Chat failed");
       reply = data.reply; c.session_id = data.session_id || c.session_id;
     }
-    typing.remove(); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: reply || "...", createdAt: Date.now() }); await maybeAddContextGif(c, `${c.messages.at(-2)?.content || ""} ${reply || ""}`); save(); renderMessages(true); renderChatList(); renderRecent(); el("messageInput")?.focus();
+    typing.remove();
+    const lastUserMsg = [...c.messages].reverse().find(m => m.role === "user" && m.type === "text");
+    if (lastUserMsg) addReactionToMessage(lastUserMsg, pickBotReaction(reply || lastUserMsg.content || ""));
+    c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: reply || "...", createdAt: Date.now() });
+    await maybeAddContextGif(c, `${c.messages.at(-2)?.content || ""} ${reply || ""}`); save(); renderMessages(true); renderChatList(); renderRecent(); el("messageInput")?.focus();
   } catch (err) { typing.remove(); c.messages.push({ id: crypto.randomUUID(), role: "assistant", type: "text", content: `Error: ${err.message}`, createdAt: Date.now() }); save(); renderMessages(); toast(err.message); }
 }
 function contextToGifQuery(text = "") {
@@ -830,6 +837,12 @@ function renderBot() {
   document.querySelectorAll("[data-bot-card]").forEach(card => card.classList.toggle("active-bot-card", card.dataset.botCard === bot.id));
   document.querySelectorAll(".bot-name-dynamic").forEach(n => n.textContent = nick);
   if (el("messageInput")) el("messageInput").placeholder = `Message ${nick}...`;
+  const comfort = el("activeBotComfortBtn");
+  if (comfort) {
+    comfort.textContent = bot.id === "qiqi" ? "🧊 Qiqi comfort" : "🫶 Comfort me";
+    comfort.dataset.quickChat = bot.id === "qiqi" ? "Qiqi, tell me something comforting in your quiet style." : `${nick}, give me a comforting message and use my name.`;
+  }
+  if (el("homeBotSettingsBtn")) el("homeBotSettingsBtn").querySelector("span") && (el("homeBotSettingsBtn").querySelector("span").textContent = `Change ${nick} nickname, style, creativity, and reply length.`);
 }
 function renderAll() { renderProfile(); renderBot(); renderChatList(); renderMessages(); renderRecent(); renderGallery(); }
 
@@ -916,6 +929,10 @@ function handleMessageAction(e) {
   if (action === "delete") {
     c.messages.splice(idx, 1); save(); renderMessages(); renderChatList(); renderRecent(); playTone("delete"); toast("Message deleted.");
   }
+  if (action === "react") {
+    addReactionToMessage(msg, btn.dataset.emoji || "✨");
+    save(); renderMessages(true); playTone("magic");
+  }
   if (action === "regen") regenerate();
 }
 
@@ -989,7 +1006,12 @@ function initIntro() {
     if (e.key === "Enter") advanceIntro(1);
     if (e.key === "Escape") showAuthScreen();
   });
-  if (!state.sessionActive) showIntro();
+  if (!state.sessionActive) {
+    if (sessionStorage.getItem("miliastra_logout_to_login") === "1") {
+      sessionStorage.removeItem("miliastra_logout_to_login");
+      showAuthScreen();
+    } else showIntro();
+  }
 }
 
 function initLoginVideo() {
@@ -1110,12 +1132,24 @@ function ensureSpotifyEmbed() {
   if (!frame.src.includes("4A6ZD9GoWRdB6avUex5dxr")) frame.src = src;
 }
 
-function reactToLatestUser(emoji) {
+function addReactionToMessage(message, emoji) {
+  if (!message || !emoji) return;
+  message.reactions ||= [];
+  if (!message.reactions.includes(emoji)) message.reactions.push(emoji);
+}
+function pickBotReaction(text = "") {
+  const hay = String(text).toLowerCase();
+  if (/sad|sorry|tired|cry|pain|comfort/.test(hay)) return "💙";
+  if (/qiqi|ice|cold|genshin|liyue/.test(hay)) return "🧊";
+  if (/love|cute|happy|yay|nice/.test(hay)) return "💜";
+  if (/image|art|draw|magic|witch/.test(hay)) return "✨";
+  return ["✨", "💜", "🍵", "🌙"][Math.floor(Math.random() * 4)];
+}
+function reactToLatestMessage(emoji) {
   const c = activeChat();
-  const target = [...c.messages].reverse().find(m => m.role === "user" && m.type === "text");
+  const target = [...c.messages].reverse().find(m => ["user", "assistant"].includes(m.role) && ["text", "image", "gif"].includes(m.type));
   if (!target) return toast("Send a message first, then react to it.");
-  target.reactions ||= [];
-  if (!target.reactions.includes(emoji)) target.reactions.push(emoji);
+  addReactionToMessage(target, emoji);
   save(); renderMessages(true); playTone("magic");
 }
 
@@ -1147,14 +1181,35 @@ function initDraggablePlayer() {
   });
 }
 
+function switchBotAndCreateAdventure(botId) {
+  if (!BOTS[botId]) return;
+  state.settings.activeBot = botId;
+  const bot = currentBot();
+  const bs = currentBotSettings();
+  const c = createChat();
+  c.botId = botId;
+  c.title = `${bs.nickname || bot.name} adventure`;
+  c.autoTitle = true;
+  chats().unshift(c);
+  currentChatId = c.id;
+  state.currentChatId = c.id;
+  save();
+  renderAll();
+  syncBotSettingsControls();
+  showView("chat");
+  el("messageInput")?.focus();
+  playTone("magic");
+  toast(`Switched to ${bs.nickname || bot.name} and started a new adventure.`);
+}
+
 function initExtraInteractions() {
   initKeyboardShortcuts();
   ensureSpotifyEmbed();
   initDraggablePlayer();
   el("openBotSettingsBtn")?.addEventListener("click", openBotSettingsPanel);
-  el("botSelect")?.addEventListener("change", (e) => { state.settings.activeBot = e.target.value; activeChat().botId = e.target.value; save(); renderBot(); renderMessages(); syncBotSettingsControls(); toast(`Switched to ${currentBot().name}.`); });
-  el("emojiReactionBar")?.addEventListener("click", (e) => { const btn = e.target.closest("button[data-react]"); if (!btn) return; reactToLatestUser(btn.dataset.react); });
-  document.querySelectorAll("[data-bot-card]").forEach(card => card.addEventListener("click", () => { state.settings.activeBot = card.dataset.botCard; activeChat().botId = card.dataset.botCard; save(); renderBot(); syncBotSettingsControls(); showView("chat"); toast(`Switched to ${currentBot().name}.`); }));
+  el("botSelect")?.addEventListener("change", (e) => switchBotAndCreateAdventure(e.target.value));
+  el("emojiReactionBar")?.addEventListener("click", (e) => { const btn = e.target.closest("button[data-react]"); if (!btn) return; reactToLatestMessage(btn.dataset.react); });
+  document.querySelectorAll("[data-bot-card]").forEach(card => card.addEventListener("click", () => switchBotAndCreateAdventure(card.dataset.botCard)));
   el("comingSoonBotBtn")?.addEventListener("click", () => toast("Custom bot creation is coming soon."));
   el("homeBotSettingsBtn")?.addEventListener("click", openBotSettingsPanel);
   document.querySelectorAll(".scenario-card").forEach(card => card.addEventListener("click", () => {
