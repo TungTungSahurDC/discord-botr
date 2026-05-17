@@ -151,3 +151,17 @@ Do not put API keys in frontend JavaScript. Keep them in `.env` only.
 - Image results now show the image model label.
 - Generated images now include a Download image button in both chat and gallery.
 - Added a backend image download proxy at `/api/download-image` so generated images can be saved more reliably.
+
+## v14 Patch
+
+- Fixed web search by adding Erica backend search assist through `/api/web-search`, then injecting the results into the active chat request as context.
+- Fixed long chat lists by making the sidebar chat list properly scrollable.
+- Added a second bot: `qiqi` with character URL `https://verba.ink/v/qiqi_gp6` and local profile image `qiqi-profile.jpg`.
+- Updated chat, bot profile modal, bot settings, bot selector, messages, profile display, Image Studio, and homepage components to support multiple bots.
+- Re-enabled Elaina-themed custom cursor items as decorative cursor effects while keeping the real browser click point accurate.
+- Made the floating music player draggable and saved its position locally.
+- Added softer Elaina-themed page transition animations between intro, login, and the main app.
+- Switched GIF search to KLIPY through `/api/gif` using `KLIPY_API_KEY`, with curated fallbacks if the API returns no result.
+- Added Discord-style emoji reactions for the latest user message beside the chat textbox.
+- Added click-to-preview modal for Image Studio generated images.
+- Improved the Discord server widget area on the homepage.

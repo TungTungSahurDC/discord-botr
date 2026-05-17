@@ -141,9 +141,9 @@
             <div id="recentGrid" class="recent-grid"></div>
           </section>
           <section class="capabilities-panel interactive-panel">
-            <div class="panel-head"><h3>What ineffa can do</h3><span>Chat powers</span></div>
+            <div class="panel-head"><h3>What the bots can do</h3><span>Chat powers</span></div>
             <div class="capability-grid">
-              <button class="cap-card" data-jump="chat" data-quick="Explain something with web search if needed."><b>🌐 Web search</b><span>Ask current or searchable questions.</span></button>
+              <button class="cap-card" data-jump="chat" data-quick="Explain something with web search if needed."><b>🌐 Web search</b><span>Ask current or searchable questions with search assist.</span></button>
               <button class="cap-card" data-jump="studio"><b>🎨 Image creation</b><span>Generate 1024×1024 images with references.</span></button>
               <button class="cap-card" data-quick="Start a cozy roleplay scenario with me."><b>🎭 Roleplay</b><span>Load story/scenario prompts.</span></button>
               <button class="cap-card" data-quick="Remember my name and respond to me personally."><b>💾 Session memory</b><span>Keeps context with session IDs.</span></button>
@@ -154,7 +154,7 @@
           </section>
           <section class="discord-panel">
             <div class="panel-head"><h3>Discord Server</h3><span>Community widget</span></div>
-            <iframe src="https://discord.com/widget?id=1492520858802192494&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts" title="Discord server widget"></iframe>
+            <iframe src="https://discord.com/widget?id=1492520858802192494&theme=dark" width="100%" height="520" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts" title="Discord server widget"></iframe>
           </section>
           <section class="spotify-panel" id="spotifyPanel">
             <div class="panel-head"><h3>Miliastra Playlist</h3><span id="spotifyStatus">Spotify ready</span></div>
@@ -190,7 +190,7 @@
             <button class="avatar-button open-bot-profile" id="activeBotProfileBtn" type="button" title="Open ineffa profile"><img class="avatar-img large" id="activeBotAvatar" src="assets/ineffa-profile.webp" alt="ineffa" /></button>
             <div class="bot-info-main">
               <div class="bot-meta"><h2 id="activeBotName">ineffa</h2><p id="activeBotDesc">Main bot of Miliastra</p></div>
-              <label class="bot-picker"><span>Bot</span><select id="botSelect" disabled><option>ineffa — locked</option></select><small>New bots are coming soon.</small></label>
+              <label class="bot-picker"><span>Bot</span><select id="botSelect"><option value="ineffa">ineffa</option><option value="qiqi">qiqi</option></select><small>Switch between available bots. New custom bots are coming soon.</small></label>
               <button class="secondary-btn bot-settings-open" id="openBotSettingsBtn" type="button">⚙️ Bot settings</button>
             </div>
             <button class="secondary-btn compact-toggle" id="toggleBotInfoBtn" type="button" aria-expanded="true">Hide info</button>
@@ -198,7 +198,8 @@
 
           <div class="chat-quickbar interactive-panel">
             <button type="button" data-quick-chat="Use web search and tell me one interesting thing that happened recently.">🌐 Search current info</button>
-            <button type="button" data-quick-chat="Start a Genshin-style lore scenario with ineffa.">✨ Lore scenario</button>
+            <button type="button" data-quick-chat="Start a Genshin-style lore scenario with the active bot.">✨ Lore scenario</button>
+            <button type="button" data-quick-chat="Qiqi, tell me something comforting in your quiet style.">🧊 Qiqi comfort</button>
             <button type="button" data-quick-chat="Give me a comforting message and use my name.">🫶 Comfort me</button>
             <button type="button" data-quick-chat="Help me make a creative image prompt.">🎨 Image prompt help</button>
             <button type="button" id="clearChatBtn">🧹 Clear chat</button>
@@ -216,7 +217,7 @@
               <button type="button" data-style="sparkle">✨</button>
             </div>
             <button type="button" class="round-btn" id="regenBtn" title="Regenerate last reply">↻</button>
-            <textarea id="messageInput" placeholder="Message ineffa..." rows="1" maxlength="4000"></textarea>
+            <div class="message-input-wrap"><textarea id="messageInput" placeholder="Message active bot..." rows="1" maxlength="4000"></textarea><div class="emoji-reaction-bar" id="emojiReactionBar" title="React to the latest user message"><button type="button" data-react="💜">💜</button><button type="button" data-react="✨">✨</button><button type="button" data-react="😭">😭</button><button type="button" data-react="🍵">🍵</button><button type="button" data-react="🧊">🧊</button></div></div>
             <button type="submit" class="send-btn" id="sendBtn">Send</button>
           </form>
         </div>
@@ -244,14 +245,20 @@
         <div class="panel coming-soon enhanced-panel">
           <div>
             <p class="eyebrow">Bot Builder</p>
-            <h2>Add new bot — coming soon</h2>
-            <p class="muted">The app is locked to ineffa for now. This section is prepared for future custom character URLs, avatar uploads, personality cards, and bot collections.</p>
+            <h2>Bot collection</h2>
+            <p class="muted">ineffa and qiqi are available now. Add New Bot is still coming soon for future custom character URLs, avatar uploads, personality cards, and bot collections.</p>
           </div>
-          <div class="bot-card locked-card glow-card">
+          <div class="bot-card locked-card glow-card" data-bot-card="ineffa">
             <img src="assets/ineffa-profile.webp" alt="ineffa" class="open-bot-profile" />
             <h3>ineffa</h3>
             <p>Main bot available</p>
           </div>
+          <div class="bot-card glow-card" data-bot-card="qiqi">
+            <img src="assets/qiqi-profile.jpg" alt="qiqi" class="open-bot-profile" />
+            <h3>qiqi</h3>
+            <p>Quiet herbalist companion available</p>
+          </div>
+          <button class="secondary-btn" type="button" id="comingSoonBotBtn">＋ Add new bot — coming soon</button>
         </div>
         <div class="panel scenario-panel">
           <p class="eyebrow">ineffa scenarios</p>
@@ -327,8 +334,8 @@
           <div class="setting-card"><h3>Music playlist</h3><div class="mini-track-list" id="settingsPlaylistList"></div><div class="track-controls"><button class="secondary-btn" id="prevTrackSettingsBtn" type="button">⏮ Prev</button><button class="secondary-btn" id="nextTrackSettingsBtn" type="button">Next ⏭</button></div></div>
           <div class="setting-card"><h3>Music volume</h3><input id="musicVolume" type="range" min="0" max="100" value="20" /><p class="muted"><span id="volumeLabel">20</span>% volume</p><button class="secondary-btn" id="playMusicBtn">Play music</button></div>
           <div class="setting-card"><h3>Motion & sound</h3><label><input id="motionToggle" type="checkbox" checked /> Enable animations</label><label><input id="clickSoundToggle" type="checkbox" checked /> Button sounds</label></div>
-          <div class="setting-card"><h3>Erica API features</h3><label><input id="streamToggle" type="checkbox" /> Try streaming replies</label><label><input id="debugToolsToggle" type="checkbox" /> Debug tools</label><label><input id="toolToggle" type="checkbox" /> Enable web search while chatting</label><label><input id="contextGifToggle" type="checkbox" /> ineffa sends context GIF reactions</label></div>
-          <div class="setting-card bot-settings-card"><h3>ineffa bot settings</h3>
+          <div class="setting-card"><h3>Erica API features</h3><label><input id="streamToggle" type="checkbox" /> Try streaming replies</label><label><input id="debugToolsToggle" type="checkbox" /> Debug tools</label><label><input id="toolToggle" type="checkbox" /> Enable web search while chatting</label><label><input id="contextGifToggle" type="checkbox" /> Active bot sends context GIF reactions</label></div>
+          <div class="setting-card bot-settings-card"><h3><span class="bot-name-dynamic">ineffa</span> bot settings</h3>
             <label>Reply style<select id="botStyleSelect"><option value="natural">Natural</option><option value="cute">Cute and cozy</option><option value="lore">Lore / roleplay</option><option value="concise">Concise</option></select></label>
             <label>Temperature <input id="botTempRange" type="range" min="0" max="2" step="0.1" value="0.8" /></label><p class="muted"><span id="botTempLabel">0.8</span> creativity</p>
             <label>Max tokens <input id="botTokensRange" type="range" min="128" max="2000" step="64" value="900" /></label><p class="muted"><span id="botTokensLabel">900</span> max response tokens</p>

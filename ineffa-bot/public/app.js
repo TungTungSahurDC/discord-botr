@@ -1,10 +1,15 @@
-const LS = "miliastra_state_v9";
+const LS = "miliastra_state_v14";
 const DEFAULT_PFP = "assets/neverness-to-everness-nte.gif";
-const DEFAULT_BOT = { id: "ineffa", name: "ineffa", character: "https://verba.ink/v/ineffa_o1r", desc: "Main bot of Miliastra", avatar: "assets/ineffa-profile.webp" };
+const BOTS = {
+  ineffa: { id: "ineffa", name: "ineffa", character: "https://verba.ink/v/ineffa_o1r", desc: "Main bot of Miliastra", avatar: "assets/ineffa-profile.webp", idLabel: "97f34dc7b45cfed1c0b86bdd" },
+  qiqi: { id: "qiqi", name: "qiqi", character: "https://verba.ink/v/qiqi_gp6", desc: "Quiet Genshin-style herbalist companion", avatar: "assets/qiqi-profile.jpg", idLabel: "4c8efc2951c9c1bdd3bc3426" }
+};
+const DEFAULT_BOT_ID = "ineffa";
+function currentBot() { return BOTS[state.settings?.activeBot || DEFAULT_BOT_ID] || BOTS.ineffa; }
 
 const el = (id) => document.getElementById(id);
 const state = loadState();
-const cursorLabels = { wand: "✧", hat: "☽", star: "✦", broom: "⌁", book: "▰", flower: "✿", none: "" };
+const cursorLabels = { wand: "🪄", hat: "🧙", star: "✦", broom: "🧹", book: "📖", flower: "✿", none: "" };
 let spotifyMode = false;
 let currentChatId = state.currentChatId || ensureChat().id;
 let musicUnlocked = false;
@@ -101,7 +106,7 @@ function defaultState() {
       currentTrack: 0,
       hideMusicPlayer: false,
       hideBotInfo: false,
-      botSettings: { style: "natural", temperature: 0.8, maxTokens: 900, nickname: "ineffa" }
+      activeBot: "ineffa", botSettings: { ineffa: { style: "natural", temperature: 0.8, maxTokens: 900, nickname: "ineffa" }, qiqi: { style: "cute", temperature: 0.7, maxTokens: 700, nickname: "qiqi" } }, musicPlayerPos: null
     }
   };
 }
@@ -127,6 +132,15 @@ function merge(base, patch) {
 function save() { localStorage.setItem(LS, JSON.stringify(state)); }
 function userKey() { return state.currentUser || "guest"; }
 function currentProfile() { return state.currentUser ? state.users[state.currentUser]?.profile : state.guestProfile; }
+function currentBotSettings() {
+  if (!state.settings.botSettings || typeof state.settings.botSettings.style === "string") {
+    const old = state.settings.botSettings || {};
+    state.settings.botSettings = { ineffa: { style: old.style || "natural", temperature: old.temperature ?? 0.8, maxTokens: old.maxTokens ?? 900, nickname: old.nickname || "ineffa" }, qiqi: { style: "cute", temperature: 0.7, maxTokens: 700, nickname: "qiqi" } };
+  }
+  const bot = currentBot();
+  state.settings.botSettings[bot.id] ||= { style: "natural", temperature: 0.8, maxTokens: 900, nickname: bot.name };
+  return state.settings.botSettings[bot.id];
+}
 function chats() { const key = userKey(); state.chats[key] ||= []; return state.chats[key]; }
 function gallery() { return state.gallery; }
 
@@ -137,7 +151,8 @@ function createChat() {
     autoTitle: true,
     createdAt: Date.now(),
     session_id: null,
-    messages: []
+    messages: [],
+    botId: state.settings?.activeBot || DEFAULT_BOT_ID
   };
 }
 function ensureChat() {
@@ -617,6 +632,8 @@ function renderChatList() {
 function renderMessages(focusLastText = false) {
   const wrap = el("messages"); wrap.innerHTML = "";
   const c = activeChat();
+  if (c.botId && BOTS[c.botId] && state.settings.activeBot !== c.botId) state.settings.activeBot = c.botId;
+  renderBot();
   if (!c.messages.length) {
     wrap.innerHTML = `<div class="empty-state">Start a new adventure with ineffa ✨</div>`;
     return;
@@ -632,8 +649,10 @@ function addBubble(m, typing = false) {
   art.dataset.messageType = m.type || "text";
   if (m.id) art.dataset.messageId = m.id;
   const isUser = m.role === "user";
-  const displayName = isUser ? (currentProfile()?.name || "Guest") : DEFAULT_BOT.name;
-  const img = document.createElement("img"); img.className = "avatar-img"; img.src = isUser ? (currentProfile()?.pfp || DEFAULT_PFP) : DEFAULT_BOT.avatar; img.alt = displayName;
+  const bot = currentBot();
+  const bs = currentBotSettings();
+  const displayName = isUser ? (currentProfile()?.name || "Guest") : (bs.nickname || bot.name);
+  const img = document.createElement("img"); img.className = "avatar-img"; img.src = isUser ? (currentProfile()?.pfp || DEFAULT_PFP) : bot.avatar; img.alt = displayName;
   const body = document.createElement("div"); body.className = "message-body";
   const meta = document.createElement("div"); meta.className = "message-meta";
   meta.innerHTML = `<strong>${escapeHtml(displayName)}</strong><span>${isUser ? "You" : "Bot"} · ${formatTime(m.createdAt || Date.now())}</span>`;
@@ -644,7 +663,7 @@ function addBubble(m, typing = false) {
   else bubble.innerHTML = renderMarkdown(m.content || "");
   const actions = document.createElement("div"); actions.className = "message-actions";
   if (!typing) actions.innerHTML = `<button type="button" data-msg-action="copy">Copy</button><button type="button" data-msg-action="quote">Quote</button>${(!isUser && m.type === "text") ? '<button type="button" data-msg-action="regen">Retry</button>' : ''}<button type="button" data-msg-action="delete">Delete</button>`;
-  body.append(meta, bubble, actions);
+  if (Array.isArray(m.reactions) && m.reactions.length) { const reactRow = document.createElement("div"); reactRow.className = "message-reactions"; reactRow.innerHTML = m.reactions.map(r => `<span>${escapeHtml(r)}</span>`).join(""); body.append(meta, bubble, reactRow, actions); } else body.append(meta, bubble, actions);
   art.append(img, body); wrap.appendChild(art); scrollMessages(); return art;
 }
 async function sendMessage(text) {
@@ -662,7 +681,9 @@ async function sendMessage(text) {
 async function requestAssistant(c) {
   const typing = addBubble({ role: "assistant", type: "text", content: "" }, true);
   try {
+    c.botId = state.settings.activeBot || DEFAULT_BOT_ID;
     const body = buildRequestBody(c);
+    if (state.settings.sampleTool) body.web_search_context = await buildWebSearchContext(c);
     let reply;
     if (state.settings.stream) reply = await streamReply(body, typing);
     else {
@@ -710,28 +731,18 @@ async function maybeAddContextGif(c, context) {
 function buildRequestBody(c) {
   const profile = currentProfile() || state.guestProfile;
   const displayName = (profile.name || "Guest").trim() || "Guest";
-  const bs = state.settings.botSettings || {};
-  const botName = (bs.nickname || DEFAULT_BOT.name).trim() || DEFAULT_BOT.name;
+  const bot = currentBot();
+  const bs = currentBotSettings();
+  const botName = (bs.nickname || bot.name).trim() || bot.name;
   const styleHint = { natural: "Speak naturally and warmly.", cute: "Use a cute, cozy, slightly playful tone.", lore: "Lean into immersive lore, roleplay, and scene details.", concise: "Keep replies short and direct." }[bs.style || "natural"] || "Speak naturally.";
-  const personaContext = `Important profile context: The current user display name is "${displayName}". Address the user by this name when natural. Do not call the user Erica unless their display name is Erica. The app creator is Erica Panganiban, but the current user may be someone else. You are currently displayed as "${botName}". Bot reply style: ${styleHint} User bio/persona notes: ${(profile.bio || "none").slice(0, 350)}. If the user asks for a GIF, acknowledge it briefly because the app can attach a GIF result after your reply.`;
+  const personaContext = `Important profile context: The current user display name is "${displayName}". Address the user by this name when natural. Do not call the user Erica unless their display name is Erica. The app creator is Erica Panganiban, but the current user may be someone else. You are currently displayed as "${botName}" and your active bot profile is "${bot.name}". If the active bot is qiqi, stay gentle, short, quiet, and Qiqi-like. Bot reply style: ${styleHint} User bio/persona notes: ${(profile.bio || "none").slice(0, 350)}. If the user asks for a GIF, acknowledge it briefly because the app can attach a GIF result after your reply.`;
   const clean = c.messages.filter(m => m.type !== "image" && m.type !== "gif").slice(-60).map(m => ({ role: m.role, content: m.content }));
   const lastUserIndex = clean.map(m => m.role).lastIndexOf("user");
   if (lastUserIndex >= 0) clean[lastUserIndex] = { ...clean[lastUserIndex], content: `${personaContext}
 
 User message: ${clean[lastUserIndex].content}` };
-  const body = { character: DEFAULT_BOT.character, session_id: c.session_id, messages: clean, debug_tools: state.settings.debugTools, temperature: Number(bs.temperature ?? 0.8), max_tokens: Number(bs.maxTokens ?? 900) };
-  if (state.settings.sampleTool) {
-    body.tools = [{
-      type: "function",
-      function: {
-        name: "web_search",
-        description: "Search the public web for fresh information using a safe JSON search endpoint. Use this when the user asks for current, recent, factual, or searchable information.",
-        parameters: { type: "object", properties: { query: { type: "string", description: "Search query" } }, required: ["query"] },
-        x_verba_http: { url: "https://api.duckduckgo.com/?format=json&no_html=1&skip_disambig=1", method: "GET", query_param: "q", headers: { "Accept": "application/json" }, timeout_ms: 9000 }
-      }
-    }];
-    body.tool_choice = "auto";
-  }
+  const body = { character: bot.character, session_id: c.session_id, messages: clean, debug_tools: state.settings.debugTools, temperature: Number(bs.temperature ?? 0.8), max_tokens: Number(bs.maxTokens ?? 900), web_search: !!state.settings.sampleTool };
+  // Web search is handled by the Erica backend search assist and injected as context.
   return body;
 }
 async function streamReply(body, typingNode) {
@@ -778,7 +789,7 @@ async function generateImage() {
   setImageGenerating(true, prompt);
   try {
     const c = activeChat();
-    const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ character: DEFAULT_BOT.character, session_id: c.session_id, prompt, image_urls: refs }) });
+    const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ character: currentBot().character, session_id: c.session_id, prompt, image_urls: refs }) });
     const data = await r.json(); if (!r.ok) throw new Error(data.message || "Image failed");
     c.session_id = data.session_id || c.session_id;
     const item = { url: data.image_url, prompt: data.revised_prompt || prompt, model: data.model || "Erica image model · 1024×1024", createdAt: Date.now() };
@@ -798,7 +809,7 @@ function setImageGenerating(isGenerating, prompt = "") {
 function renderGallery() {
   const g = el("gallery"); g.innerHTML = "";
   if (!gallery().length) return g.innerHTML = `<div class="empty-state">Generated images appear here.</div>`;
-  gallery().forEach(img => { const card = document.createElement("div"); card.className = "image-card"; card.innerHTML = `<img src="${escapeAttr(img.url)}" alt="Generated"><p class="image-caption">${escapeHtml(img.prompt)}</p><p class="image-model">Model: ${escapeHtml(img.model || "Erica image model · 1024×1024")}</p><a class="download-btn" href="/api/download-image?url=${encodeURIComponent(img.url)}" download>Download image</a>`; g.appendChild(card); });
+  gallery().forEach(img => { const card = document.createElement("div"); card.className = "image-card"; card.innerHTML = `<button class="image-preview-btn" type="button"><img src="${escapeAttr(img.url)}" alt="Generated"></button><p class="image-caption">${escapeHtml(img.prompt)}</p><p class="image-model">Model: ${escapeHtml(img.model || "Erica image model · 1024×1024")}</p><a class="download-btn" href="/api/download-image?url=${encodeURIComponent(img.url)}" download>Download image</a>`; card.querySelector(".image-preview-btn").addEventListener("click", () => openImagePreview(img)); g.appendChild(card); });
 }
 
 function renderRecent() {
@@ -807,7 +818,19 @@ function renderRecent() {
   if (!recent.length) return r.innerHTML = `<div class="empty-state">No adventures yet.</div>`;
   recent.forEach(c => { const card = document.createElement("button"); card.className = "recent-card"; card.innerHTML = `<strong>${escapeHtml(c.title)}</strong><p class="muted">${c.messages.length} messages</p>`; card.addEventListener("click", () => { currentChatId = c.id; state.currentChatId = c.id; save(); renderMessages(); showView("chat"); }); r.appendChild(card); });
 }
-function renderBot() { const nick = state.settings.botSettings?.nickname || DEFAULT_BOT.name; el("activeBotAvatar").src = DEFAULT_BOT.avatar; el("activeBotName").textContent = nick; el("activeBotDesc").textContent = DEFAULT_BOT.desc; }
+function renderBot() {
+  const bot = currentBot();
+  const bs = currentBotSettings();
+  const nick = bs.nickname || bot.name;
+  if (el("activeBotAvatar")) el("activeBotAvatar").src = bot.avatar;
+  if (el("activeBotName")) el("activeBotName").textContent = nick;
+  if (el("activeBotDesc")) el("activeBotDesc").textContent = bot.desc;
+  if (el("miniBot")) el("miniBot").textContent = `with ${nick}`;
+  if (el("botSelect")) { el("botSelect").value = bot.id; el("botSelect").disabled = false; }
+  document.querySelectorAll("[data-bot-card]").forEach(card => card.classList.toggle("active-bot-card", card.dataset.botCard === bot.id));
+  document.querySelectorAll(".bot-name-dynamic").forEach(n => n.textContent = nick);
+  if (el("messageInput")) el("messageInput").placeholder = `Message ${nick}...`;
+}
 function renderAll() { renderProfile(); renderBot(); renderChatList(); renderMessages(); renderRecent(); renderGallery(); }
 
 function applyTextStyle(style) {
@@ -815,6 +838,34 @@ function applyTextStyle(style) {
   const wrap = style === "bold" ? `**${selected}**` : style === "italic" ? `*${selected}*` : style === "code" ? `\`${selected}\`` : style === "quote" ? selected.split("\n").map(l => `> ${l}`).join("\n") : style === "heading" ? `### ${selected}` : `✨ ${selected} ✨`;
   input.value = input.value.slice(0, start) + wrap + input.value.slice(end); input.focus(); input.setSelectionRange(start + wrap.length, start + wrap.length); input.dispatchEvent(new Event("input"));
 }
+async function buildWebSearchContext(c) {
+  const last = [...c.messages].reverse().find(m => m.role === "user" && m.type === "text");
+  const query = (last?.content || "").replace(/^[🎨\s]+/, "").slice(0, 180);
+  if (!query || !/(search|web|current|recent|latest|today|now|who is|what is|when|where|news|price|update|happened|find|look up)/i.test(query)) return "";
+  try {
+    const r = await fetch(`/api/web-search?q=${encodeURIComponent(query)}`);
+    const data = await r.json();
+    if (!r.ok) return "";
+    const lines = [];
+    if (data.heading || data.abstract) lines.push(`Web search assist for query: ${data.query}\n${data.heading ? `Heading: ${data.heading}` : ""} ${data.abstract ? `Summary: ${data.abstract}` : ""} ${data.source_url ? `Source: ${data.source_url}` : ""}`);
+    (data.results || []).slice(0,4).forEach((x, i) => lines.push(`${i+1}. ${x.snippet || x.title || "Result"}${x.url ? ` (${x.url})` : ""}`));
+    return lines.length ? `Use these fresh web search results if relevant. Be honest if the results are insufficient.\n${lines.join("\n")}` : "";
+  } catch (_) { return ""; }
+}
+
+function openImagePreview(img) {
+  let dialog = el("imagePreviewDialog");
+  if (!dialog) {
+    dialog = document.createElement("dialog");
+    dialog.id = "imagePreviewDialog";
+    dialog.className = "image-preview-dialog";
+    document.body.appendChild(dialog);
+  }
+  dialog.innerHTML = `<div class="image-preview-card"><button class="icon-btn close-preview" type="button">×</button><img src="${escapeAttr(img.url)}" alt="Preview"><p>${escapeHtml(img.prompt || "Generated image")}</p><a class="download-btn" href="/api/download-image?url=${encodeURIComponent(img.url)}" download>Download image</a></div>`;
+  dialog.querySelector(".close-preview").addEventListener("click", () => dialog.close());
+  dialog.showModal();
+}
+
 function renderMarkdown(text) {
   let html = escapeHtml(text);
   html = html.split("\n").map(line => line.startsWith("### ") ? `<h3>${line.slice(4)}</h3>` : line.startsWith("&gt; ") ? `<blockquote>${line.slice(5)}</blockquote>` : line || "<br>").join("\n");
@@ -958,11 +1009,11 @@ function initLoginVideo() {
 }
 
 function syncBotSettingsControls() {
-  const bs = state.settings.botSettings ||= { style: "natural", temperature: 0.8, maxTokens: 900, nickname: "ineffa" };
+  const bs = currentBotSettings();
   if (el("botStyleSelect")) el("botStyleSelect").value = bs.style || "natural";
   if (el("botTempRange")) el("botTempRange").value = bs.temperature ?? 0.8;
   if (el("botTokensRange")) el("botTokensRange").value = bs.maxTokens ?? 900;
-  if (el("botNicknameInput")) el("botNicknameInput").value = bs.nickname || "ineffa";
+  if (el("botNicknameInput")) el("botNicknameInput").value = bs.nickname || currentBot().name;
   updateBotSettingLabels();
 }
 function updateBotSettingLabels() {
@@ -970,33 +1021,38 @@ function updateBotSettingLabels() {
   if (el("botTokensLabel") && el("botTokensRange")) el("botTokensLabel").textContent = el("botTokensRange").value;
 }
 function saveBotSettingsFromControls() {
-  state.settings.botSettings = {
+  const bot = currentBot();
+  state.settings.botSettings ||= {};
+  state.settings.botSettings[bot.id] = {
     style: el("botStyleSelect")?.value || "natural",
     temperature: Number(el("botTempRange")?.value || 0.8),
     maxTokens: Number(el("botTokensRange")?.value || 900),
-    nickname: (el("botNicknameInput")?.value || "ineffa").trim() || "ineffa"
+    nickname: (el("botNicknameInput")?.value || bot.name).trim() || bot.name
   };
-  save(); renderBot(); toast("ineffa bot settings saved."); playTone("success");
+  save(); renderBot(); renderMessages(); toast(`${bot.name} bot settings saved.`); playTone("success");
 }
 
 async function openBotProfile() {
   const dialog = el("botProfileDialog");
   const grid = el("botProfileGrid");
+  const bot = currentBot();
   dialog?.showModal();
   try {
-    const r = await fetch("/api/bot-profile");
+    const r = await fetch(`/api/bot-profile?id=${encodeURIComponent(bot.id)}`);
     const data = await r.json();
-    el("botProfileName").textContent = state.settings.botSettings?.nickname || data.name || "ineffa";
-    el("botProfileDesc").textContent = data.title || data.lore || "Main bot of Miliastra";
+    const bs = currentBotSettings();
+    el("botProfileName").textContent = bs.nickname || data.name || bot.name;
+    el("botProfileDesc").textContent = data.title || data.lore || bot.desc;
+    const headImg = document.querySelector(".bot-profile-head img"); if (headImg) headImg.src = bot.avatar;
     grid.innerHTML = `
-      <article><h3>Character ID</h3><p>${escapeHtml(data.id || "97f34dc7b45cfed1c0b86bdd")}</p></article>
+      <article><h3>Character ID</h3><p>${escapeHtml(data.id || bot.idLabel || "unknown")}</p></article>
       <article><h3>Status</h3><p>${escapeHtml(data.status || "online")} · ${escapeHtml(data.provider_label || "Erica API")}</p></article>
-      <article><h3>Character URL</h3><p>${escapeHtml(data.character || DEFAULT_BOT.character)}</p></article>
-      <article><h3>Lore</h3><p>${escapeHtml(data.lore || DEFAULT_BOT.desc)}</p></article>
+      <article><h3>Character URL</h3><p>${escapeHtml(data.character || bot.character)}</p></article>
+      <article><h3>Lore</h3><p>${escapeHtml(data.lore || bot.desc)}</p></article>
       <article><h3>Capabilities</h3><ul>${(data.capabilities || []).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></article>
       <article><h3>API limits</h3><p>Messages: ${escapeHtml(data.limits?.messages || 60)}<br>Image URLs: ${escapeHtml(data.limits?.image_urls || 4)}<br>Image size: ${escapeHtml(data.limits?.image_size || "1024x1024")}</p></article>`;
   } catch (_) {
-    grid.innerHTML = `<article><h3>ineffa</h3><p>Main Miliastra bot profile is available offline. Chat, image, GIF, web search, and roleplay features are enabled in the app.</p></article>`;
+    grid.innerHTML = `<article><h3>${escapeHtml(bot.name)}</h3><p>${escapeHtml(bot.desc)} Chat, image, GIF, web search, and roleplay features are enabled in the app.</p></article>`;
   }
 }
 
@@ -1019,7 +1075,7 @@ async function requestGif(query, randomize = false) {
     const item = randomize ? (candidates[Math.floor(Math.random() * candidates.length)] || results[0]) : results[0];
     if (!r.ok || !item?.url) return null;
     if (item?.url) lastAutoGifUrl = item.url;
-    return { url: item.url, label: `GIF: ${item.title || data.query || query}`, content: `[GIF] ${item.title || query}` };
+    return { url: item.url, label: `GIF: ${item.title || data.query || query}`, content: `[GIF] ${item.title || query}`, provider: data.provider || "klipy" };
   } catch (_) {
     return pickContextGif(query);
   }
@@ -1043,7 +1099,7 @@ function openBotSettingsPanel() {
     card.classList.remove("flash-focus");
     void card.offsetWidth;
     card.classList.add("flash-focus");
-    toast("Bot settings are here.");
+    toast(`${currentBot().name} bot settings are here.`);
   });
 }
 
@@ -1054,10 +1110,52 @@ function ensureSpotifyEmbed() {
   if (!frame.src.includes("4A6ZD9GoWRdB6avUex5dxr")) frame.src = src;
 }
 
+function reactToLatestUser(emoji) {
+  const c = activeChat();
+  const target = [...c.messages].reverse().find(m => m.role === "user" && m.type === "text");
+  if (!target) return toast("Send a message first, then react to it.");
+  target.reactions ||= [];
+  if (!target.reactions.includes(emoji)) target.reactions.push(emoji);
+  save(); renderMessages(true); playTone("magic");
+}
+
+function initDraggablePlayer() {
+  const player = el("floatingPlayer");
+  if (!player) return;
+  let dragging = false, dx = 0, dy = 0;
+  const applyPos = () => {
+    const pos = state.settings.musicPlayerPos;
+    if (!pos) return;
+    player.style.left = `${pos.x}px`; player.style.top = `${pos.y}px`; player.style.right = "auto"; player.style.bottom = "auto";
+  };
+  applyPos();
+  player.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("button,a,input")) return;
+    dragging = true; player.setPointerCapture(e.pointerId);
+    const r = player.getBoundingClientRect(); dx = e.clientX - r.left; dy = e.clientY - r.top;
+    player.classList.add("dragging");
+  });
+  player.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const x = Math.max(8, Math.min(window.innerWidth - player.offsetWidth - 8, e.clientX - dx));
+    const y = Math.max(8, Math.min(window.innerHeight - player.offsetHeight - 8, e.clientY - dy));
+    player.style.left = `${x}px`; player.style.top = `${y}px`; player.style.right = "auto"; player.style.bottom = "auto";
+  });
+  player.addEventListener("pointerup", () => {
+    if (!dragging) return; dragging = false; player.classList.remove("dragging");
+    const r = player.getBoundingClientRect(); state.settings.musicPlayerPos = { x: Math.round(r.left), y: Math.round(r.top) }; save();
+  });
+}
+
 function initExtraInteractions() {
   initKeyboardShortcuts();
   ensureSpotifyEmbed();
+  initDraggablePlayer();
   el("openBotSettingsBtn")?.addEventListener("click", openBotSettingsPanel);
+  el("botSelect")?.addEventListener("change", (e) => { state.settings.activeBot = e.target.value; activeChat().botId = e.target.value; save(); renderBot(); renderMessages(); syncBotSettingsControls(); toast(`Switched to ${currentBot().name}.`); });
+  el("emojiReactionBar")?.addEventListener("click", (e) => { const btn = e.target.closest("button[data-react]"); if (!btn) return; reactToLatestUser(btn.dataset.react); });
+  document.querySelectorAll("[data-bot-card]").forEach(card => card.addEventListener("click", () => { state.settings.activeBot = card.dataset.botCard; activeChat().botId = card.dataset.botCard; save(); renderBot(); syncBotSettingsControls(); showView("chat"); toast(`Switched to ${currentBot().name}.`); }));
+  el("comingSoonBotBtn")?.addEventListener("click", () => toast("Custom bot creation is coming soon."));
   el("homeBotSettingsBtn")?.addEventListener("click", openBotSettingsPanel);
   document.querySelectorAll(".scenario-card").forEach(card => card.addEventListener("click", () => {
     showView("chat");

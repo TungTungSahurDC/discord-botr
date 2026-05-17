@@ -19,10 +19,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ERICA_API_KEY = process.env.ERICA_API_KEY || process.env.VERBA_API_KEY;
 const DEFAULT_CHARACTER = process.env.DEFAULT_CHARACTER || process.env.VERBA_CHARACTER || "https://verba.ink/v/ineffa_o1r";
+const QIQI_CHARACTER = process.env.QIQI_CHARACTER || "https://verba.ink/v/qiqi_gp6";
+const KLIPY_API_KEY = process.env.KLIPY_API_KEY || "Y4FhRhtMXMKQkMvBMsvSKK1aXvT8DEONEQnvnrbBFEMuzrBW7zDn84oCFl2b1DOe";
 const API_BASE = process.env.ERICA_API_BASE || "https://api.verba.ink";
 const RESPONSE_URL = `${API_BASE}/v1/response`;
 const IMAGE_URL = `${API_BASE}/v1/image`;
-const GIPHY_API_KEY = process.env.GIPHY_API_KEY || "dc6zaTOxFJmzC"; // optional; app falls back to curated GIFs
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -142,6 +143,13 @@ function buildChatPayload(req, stream = false) {
     if (req.body.debug_tools) payload.debug = { tools: true };
   }
 
+  if (typeof req.body.web_search_context === "string" && req.body.web_search_context.trim() && payload.messages.length) {
+    const idx = payload.messages.map((m) => m.role).lastIndexOf("user");
+    if (idx >= 0 && typeof payload.messages[idx].content === "string") {
+      payload.messages[idx].content = `${req.body.web_search_context.slice(0, 2800)}\n\n${payload.messages[idx].content}`.slice(0, 4000);
+    }
+  }
+
   return payload;
 }
 
@@ -152,8 +160,8 @@ function clampNumber(value, min, max, fallback) {
 }
 
 
-app.get("/api/bot-profile", (_req, res) => {
-  res.json({
+const BOT_PROFILES = {
+  ineffa: {
     id: "97f34dc7b45cfed1c0b86bdd",
     name: "ineffa",
     title: "Main bot of Miliastra",
@@ -161,24 +169,31 @@ app.get("/api/bot-profile", (_req, res) => {
     avatar: "/assets/ineffa-profile.webp",
     status: "online",
     provider_label: "Erica API",
-    capabilities: [
-      "Text chat with session memory",
-      "Web search through request-scoped tools",
-      "Image generation",
-      "Vision/reference image URLs",
-      "Context GIF reactions",
-      "Roleplay scenarios",
-      "User-name aware replies"
-    ],
-    limits: {
-      messages: 60,
-      message_text: "4000 characters each",
-      total_text: "20000 characters",
-      image_urls: 4,
-      image_size: "1024x1024"
-    },
+    capabilities: ["Text chat with session memory", "Web search through Erica search assist", "Image generation", "Vision/reference image URLs", "Context GIF reactions", "Roleplay scenarios", "User-name aware replies"],
+    limits: { messages: 60, message_text: "4000 characters each", total_text: "20000 characters", image_urls: 4, image_size: "1024x1024" },
     lore: "ineffa is the main Miliastra companion: calm, observant, softly teasing, and ready for cozy roleplay, web searching, image prompts, and GIF reactions."
-  });
+  },
+  qiqi: {
+    id: "4c8efc2951c9c1bdd3bc3426",
+    name: "qiqi",
+    title: "Qiqi companion bot",
+    character: QIQI_CHARACTER,
+    avatar: "/assets/qiqi-profile.jpg",
+    status: "online",
+    provider_label: "Erica API",
+    capabilities: ["Genshin-style cozy chat", "Short calm replies", "GIF reactions", "Image generation", "Session memory", "Web search assist"],
+    limits: { messages: 60, message_text: "4000 characters each", total_text: "20000 characters", image_urls: 4, image_size: "1024x1024" },
+    lore: "Qiqi is a quiet, gentle companion inspired by a tiny herbalist zombie girl mood: soft-spoken, literal, and unintentionally cute."
+  }
+};
+
+app.get("/api/bot-profile", (req, res) => {
+  const id = String(req.query.id || "ineffa").toLowerCase();
+  res.json(BOT_PROFILES[id] || BOT_PROFILES.ineffa);
+});
+
+app.get("/api/bot-profiles", (_req, res) => {
+  res.json({ bots: Object.values(BOT_PROFILES) });
 });
 
 const curatedGifs = [
@@ -203,25 +218,50 @@ function curatedGifResults(query) {
   return [...chosen, ...fallback].slice(0, 8).map((gif, index) => ({ id: `curated_${index}`, title: gif.title, url: gif.url, preview: gif.url, source: "curated" }));
 }
 
+function normalizeKlipyItem(item, query) {
+  const url = item?.file?.gif || item?.file?.url || item?.images?.original?.url || item?.gif?.url || item?.url || item?.media?.gif?.url;
+  const preview = item?.file?.preview || item?.images?.fixed_height_small?.url || item?.preview || url;
+  if (!url) return null;
+  return { id: String(item.id || item.slug || url).slice(0,120), title: item.title || item.content_description || query, url, preview, source: "klipy" };
+}
+
 app.get("/api/gif", async (req, res) => {
-  const q = String(req.query.q || "anime reaction").trim().slice(0, 120) || "anime reaction";
+  const q = String(req.query.q || "anime reaction").trim().slice(0, 80) || "anime reaction";
   try {
-    // No Tenor: use GIPHY when an optional key works, otherwise return a curated GIF set immediately.
-    if (GIPHY_API_KEY) {
-      const url = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(q + " anime reaction")}&limit=8&rating=pg-13`;
-      const upstream = await fetch(url, { headers: { Accept: "application/json" } });
-      const data = await upstream.json().catch(() => null);
-      const results = (data?.data || []).map((item) => ({
-        id: item.id,
-        title: item.title || q,
-        url: item.images?.original?.url || item.images?.downsized_medium?.url || item.images?.fixed_height?.url,
-        preview: item.images?.fixed_height_small?.url || item.images?.preview_gif?.url
-      })).filter((item) => item.url);
-      if (results.length) return res.json({ query: q, results, provider: "giphy" });
-    }
+    const endpoint = `https://api.klipy.com/api/v1/${encodeURIComponent(KLIPY_API_KEY)}/gifs/search?q=${encodeURIComponent(q)}&per_page=12&rating=pg-13`;
+    const upstream = await fetch(endpoint, { headers: { Accept: "application/json" } });
+    const data = await upstream.json().catch(() => null);
+    const raw = data?.data?.data || data?.data || data?.result || data?.results || [];
+    const results = (Array.isArray(raw) ? raw : []).map((item) => normalizeKlipyItem(item, q)).filter(Boolean);
+    if (results.length) return res.json({ query: q, results, provider: "klipy" });
     return res.json({ query: q, results: curatedGifResults(q), provider: "curated" });
   } catch (error) {
     return res.json({ query: q, results: curatedGifResults(q), provider: "curated" });
+  }
+});
+
+app.get("/api/web-search", async (req, res) => {
+  const q = String(req.query.q || "").trim().slice(0, 180);
+  if (!q) return res.status(400).json({ message: "Query is required." });
+  try {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`;
+    const upstream = await fetch(url, { headers: { Accept: "application/json" } });
+    const data = await upstream.json();
+    const topics = [];
+    const gather = (arr = []) => arr.forEach((t) => {
+      if (t.Text) topics.push({ title: t.Text.split(" - ")[0], snippet: t.Text, url: t.FirstURL || "" });
+      if (Array.isArray(t.Topics)) gather(t.Topics);
+    });
+    gather(data.RelatedTopics || []);
+    res.json({
+      query: q,
+      abstract: data.AbstractText || "",
+      heading: data.Heading || "",
+      source_url: data.AbstractURL || "",
+      results: topics.slice(0, 6)
+    });
+  } catch (error) {
+    res.json({ query: q, abstract: "Web search provider could not be reached from this server right now. Ask again after deployment or check server outbound internet access.", heading: "Search assist unavailable", source_url: "", results: [] });
   }
 });
 
